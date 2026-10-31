@@ -1,0 +1,27 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+!.idea/runConfigurations/
+
+# Firebase project configuration (supply securely per developer)
+google-services.json
+
+# Node.js backend (if added to this repository)
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+*.log
+# Temporary source snapshot used during Ponytail integration
+/.ponytail-staging/
