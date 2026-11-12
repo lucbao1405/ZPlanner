@@ -4,11 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.zplanner.ui.theme.ZPlannerTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,12 +17,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ZPlannerTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Text(
-                        text = "Welcome to ZPlanner!",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                val authViewModel: AuthViewModel = hiltViewModel()
+                val signedIn by authViewModel.signedIn.collectAsState()
+                if (signedIn) TaskScreen(onSignOut = authViewModel::signOut)
+                else AuthScreen(authViewModel)
             }
         }
     }
