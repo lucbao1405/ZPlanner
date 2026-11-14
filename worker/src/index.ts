@@ -1,4 +1,4 @@
-const PASSWORD_ITERATIONS = 310_000;
+const PASSWORD_ITERATIONS = 100_000;
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const encoder = new TextEncoder();
 
