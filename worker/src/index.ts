@@ -25,11 +25,21 @@ interface TaskInput {
   status: "todo" | "in_progress" | "done";
 }
 
+interface EventInput {
+  title: string;
+  description: string;
+  location: string;
+  startAt: string;
+  endAt: string;
+  reminderMinutes: number;
+}
+
 class HttpError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
-    message: string
+    message: string,
+    readonly details?: Record<string, unknown>
   ) {
     super(message);
   }
@@ -68,6 +78,12 @@ export default {
       }
       if (request.method === "GET" && path === "/tasks") return await listTasks(url, env, session.userId);
       if (request.method === "POST" && path === "/tasks") return await createTask(request, env, session.userId);
+      if (request.method === "GET" && path === "/events") return await listEvents(url, env, session.userId);
+      if (request.method === "POST" && path === "/events") return await createEvent(request, env, session.userId);
+
+      const eventMatch = path.match(/^\/events\/(\d+)$/);
+      if (eventMatch && request.method === "PUT") return await updateEvent(request, env, session.userId, Number(eventMatch[1]));
+      if (eventMatch && request.method === "DELETE") return await deleteEvent(env, session.userId, Number(eventMatch[1]));
 
       const taskMatch = path.match(/^\/tasks\/(\d+)$/);
       if (taskMatch && request.method === "PUT") return await updateTask(request, env, session.userId, Number(taskMatch[1]));
@@ -75,7 +91,7 @@ export default {
 
       throw new HttpError(404, "NOT_FOUND", "Không tìm thấy endpoint.");
     } catch (error) {
-      if (error instanceof HttpError) return json({ error: { code: error.code, message: error.message } }, error.status);
+      if (error instanceof HttpError) return json({ error: { code: error.code, message: error.message, ...(error.details ?? {}) } }, error.status);
       console.error("Unhandled request error", error);
       return json({ error: { code: "INTERNAL_ERROR", message: "Đã xảy ra lỗi máy chủ." } }, 500);
     }
@@ -251,6 +267,99 @@ async function getTask(env: Env, ownerId: string, taskId: number): Promise<Recor
   return env.DB.prepare(
     "SELECT id, title, description, date, start_time AS startTime, end_time AS endTime, priority, status, created_at AS createdAt, updated_at AS updatedAt FROM tasks WHERE id = ? AND owner_id = ?"
   ).bind(taskId, ownerId).first<Record<string, unknown>>();
+}
+
+async function listEvents(url: URL, env: Env, ownerId: string): Promise<Response> {
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  if ((from && !to) || (!from && to) || (from && (!isValidTimestamp(from) || !isValidTimestamp(to!) || from >= to!))) {
+    throw new HttpError(400, "INVALID_EVENT_RANGE", "from và to phải là khoảng ISO UTC hợp lệ.");
+  }
+  let query = "SELECT id, title, description, location, start_at AS startAt, end_at AS endAt, reminder_minutes AS reminderMinutes, created_at AS createdAt, updated_at AS updatedAt FROM events WHERE owner_id = ?";
+  const params: Array<string | number> = [ownerId];
+  if (from && to) {
+    query += " AND start_at < ? AND ? < end_at";
+    params.push(to, from);
+  }
+  query += " ORDER BY start_at, id";
+  const result = await env.DB.prepare(query).bind(...params).all();
+  return json({ events: result.results });
+}
+
+async function createEvent(request: Request, env: Env, ownerId: string): Promise<Response> {
+  const body = await readJson(request);
+  const event = validateEvent(body);
+  const overlaps = await findEventOverlaps(env, ownerId, event.startAt, event.endAt);
+  if (overlaps.length > 0 && body.confirmOverlap !== true) {
+    throw new HttpError(409, "EVENT_OVERLAP", "Sự kiện bị trùng với lịch hiện có. Xác nhận để tiếp tục lưu.", { overlaps });
+  }
+  const result = await env.DB.prepare(
+    "INSERT INTO events (owner_id, title, description, location, start_at, end_at, reminder_minutes) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).bind(ownerId, event.title, event.description, event.location, event.startAt, event.endAt, event.reminderMinutes).run();
+  const eventId = Number(result.meta.last_row_id);
+  if (!Number.isSafeInteger(eventId) || eventId <= 0) throw new HttpError(500, "EVENT_CREATE_FAILED", "Không thể xác định sự kiện vừa tạo.");
+  return json({ event: await getEvent(env, ownerId, eventId), warnings: overlaps.length > 0 ? [{ code: "EVENT_OVERLAP", overlaps }] : [] }, 201);
+}
+
+async function updateEvent(request: Request, env: Env, ownerId: string, eventId: number): Promise<Response> {
+  if (!Number.isSafeInteger(eventId) || eventId <= 0) throw new HttpError(400, "INVALID_EVENT_ID", "Mã sự kiện không hợp lệ.");
+  const body = await readJson(request);
+  const event = validateEvent(body);
+  const existing = await getEvent(env, ownerId, eventId);
+  if (!existing) throw new HttpError(404, "EVENT_NOT_FOUND", "Không tìm thấy sự kiện.");
+  const overlaps = await findEventOverlaps(env, ownerId, event.startAt, event.endAt, eventId);
+  if (overlaps.length > 0 && body.confirmOverlap !== true) {
+    throw new HttpError(409, "EVENT_OVERLAP", "Sự kiện bị trùng với lịch hiện có. Xác nhận để tiếp tục lưu.", { overlaps });
+  }
+  await env.DB.prepare(
+    "UPDATE events SET title = ?, description = ?, location = ?, start_at = ?, end_at = ?, reminder_minutes = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? AND owner_id = ?"
+  ).bind(event.title, event.description, event.location, event.startAt, event.endAt, event.reminderMinutes, eventId, ownerId).run();
+  return json({ event: await getEvent(env, ownerId, eventId), warnings: overlaps.length > 0 ? [{ code: "EVENT_OVERLAP", overlaps }] : [] });
+}
+
+async function deleteEvent(env: Env, ownerId: string, eventId: number): Promise<Response> {
+  if (!Number.isSafeInteger(eventId) || eventId <= 0) throw new HttpError(400, "INVALID_EVENT_ID", "Mã sự kiện không hợp lệ.");
+  const result = await env.DB.prepare("DELETE FROM events WHERE id = ? AND owner_id = ?").bind(eventId, ownerId).run();
+  if (!result.meta.changes) throw new HttpError(404, "EVENT_NOT_FOUND", "Không tìm thấy sự kiện.");
+  return new Response(null, { status: 204, headers: corsHeaders });
+}
+
+async function getEvent(env: Env, ownerId: string, eventId: number): Promise<Record<string, unknown> | null> {
+  return env.DB.prepare(
+    "SELECT id, title, description, location, start_at AS startAt, end_at AS endAt, reminder_minutes AS reminderMinutes, created_at AS createdAt, updated_at AS updatedAt FROM events WHERE id = ? AND owner_id = ?"
+  ).bind(eventId, ownerId).first<Record<string, unknown>>();
+}
+
+async function findEventOverlaps(env: Env, ownerId: string, startAt: string, endAt: string, excludeId?: number): Promise<Record<string, unknown>[]> {
+  let query = "SELECT id, title, location, start_at AS startAt, end_at AS endAt FROM events WHERE owner_id = ? AND start_at < ? AND ? < end_at";
+  const params: Array<string | number> = [ownerId, endAt, startAt];
+  if (excludeId !== undefined) { query += " AND id <> ?"; params.push(excludeId); }
+  query += " ORDER BY start_at, id";
+  const result = await env.DB.prepare(query).bind(...params).all<Record<string, unknown>>();
+  return result.results;
+}
+
+function validateEvent(body: Record<string, unknown>): EventInput {
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  const description = typeof body.description === "string" ? body.description.trim() : "";
+  const location = typeof body.location === "string" ? body.location.trim() : "";
+  const startAt = typeof body.startAt === "string" ? body.startAt : "";
+  const endAt = typeof body.endAt === "string" ? body.endAt : "";
+  const reminderMinutes = body.reminderMinutes === undefined ? 0 : body.reminderMinutes;
+  if (!title || title.length > 120) throw new HttpError(400, "INVALID_TITLE", "Tiêu đề cần có từ 1 đến 120 ký tự.");
+  if (description.length > 2000) throw new HttpError(400, "INVALID_DESCRIPTION", "Mô tả tối đa 2000 ký tự.");
+  if (location.length > 500) throw new HttpError(400, "INVALID_LOCATION", "Địa điểm tối đa 500 ký tự.");
+  if (!isValidTimestamp(startAt) || !isValidTimestamp(endAt) || startAt >= endAt) {
+    throw new HttpError(400, "INVALID_INTERVAL", "startAt phải theo định dạng ISO và phải sớm hơn endAt.");
+  }
+  if (typeof reminderMinutes !== "number" || !Number.isSafeInteger(reminderMinutes) || reminderMinutes < 0 || reminderMinutes > 10080) {
+    throw new HttpError(400, "INVALID_REMINDER", "reminderMinutes phải là số nguyên từ 0 đến 10080.");
+  }
+  return { title, description, location, startAt, endAt, reminderMinutes };
+}
+
+function isValidTimestamp(value: string): boolean {
+  return value.length > 0 && Number.isFinite(Date.parse(value)) && value === new Date(value).toISOString();
 }
 
 function validateTask(body: Record<string, unknown>): TaskInput {

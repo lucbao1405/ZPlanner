@@ -1,17 +1,23 @@
 package com.example.zplanner
 
 import android.app.AlertDialog
+import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.zplanner.data.ApiTask
+import com.example.zplanner.data.ApiEvent
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -22,9 +28,20 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private lateinit var auth: AuthViewModel
     private lateinit var taskViewModel: TaskViewModel
+    private lateinit var eventViewModel: EventViewModel
     private var screen = Screen.LOGIN
     private var registerMode = false
+    private var profileEditorAvatar: ImageView? = null
     private val settings by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+    private val avatarPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        runCatching {
+            contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        settings.edit().putString("profile_avatar_uri", uri.toString()).apply()
+        profileEditorAvatar?.setImageURI(uri)
+        Toast.makeText(this, "Đã cập nhật ảnh đại diện.", Toast.LENGTH_SHORT).show()
+    }
     private enum class Screen { LOGIN, HOME, CALENDAR, PROFILE }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,12 +49,23 @@ class MainActivity : ComponentActivity() {
         applyThemeColors()
         auth = ViewModelProvider(this)[AuthViewModel::class.java]
         taskViewModel = ViewModelProvider(this)[TaskViewModel::class.java]
+        eventViewModel = ViewModelProvider(this)[EventViewModel::class.java]
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { auth.signedIn.collect { signedIn -> if (signedIn && screen == Screen.LOGIN) showHome() else if (!signedIn && screen != Screen.LOGIN) showLogin() } }
                 launch { taskViewModel.sessionExpired.collect { expired -> if (expired) { taskViewModel.clearSessionExpiry(); auth.signOut() } } }
                 launch { taskViewModel.tasks.collect { renderTasks(it); renderCalendar(it) } }
-                launch { taskViewModel.date.collect { date -> findViewById<TextView?>(R.id.txtSelectedDate)?.text = date } }
+                launch { eventViewModel.events.collect { renderCalendar(taskViewModel.tasks.value) } }
+                launch { eventViewModel.overlap.collect { overlap -> if (overlap != null) showEventOverlap(overlap) } }
+                launch { eventViewModel.error.collect { error -> if (error != null) Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show() } }
+                launch {
+                    taskViewModel.date.collect { date ->
+                        findViewById<TextView?>(R.id.txtSelectedDate)?.text = date
+                        val selectedDate = LocalDate.parse(date)
+                        renderCalendar(taskViewModel.tasks.value)
+                        eventViewModel.loadWeek(selectedDate)
+                    }
+                }
                 launch { taskViewModel.loading.collect { loading -> findViewById<ProgressBar?>(R.id.progressTasks)?.visibility = if (loading) View.VISIBLE else View.GONE } }
                 launch { taskViewModel.error.collect { error -> findViewById<TextView?>(R.id.txtTaskError)?.apply { text = error.orEmpty(); visibility = if (error == null) View.GONE else View.VISIBLE } } }
             }
@@ -86,27 +114,125 @@ class MainActivity : ComponentActivity() {
         findViewById<View>(R.id.btnPreviousDay).setOnClickListener { taskViewModel.previousDay() }
         findViewById<View>(R.id.btnNextDay).setOnClickListener { taskViewModel.nextDay() }
         findViewById<View>(R.id.btnAddTask).setOnClickListener { showTaskEditor(null) }
+        findViewById<View>(R.id.btnAddEvent).setOnClickListener { showEventEditor(null) }
         findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
         findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
         findViewById<View>(R.id.txtSelectedDate).setOnClickListener { showWeekCalendar() }
-        findViewById<View>(R.id.btnSettings).setOnClickListener { showSettings() }
         findViewById<TextView>(R.id.txtSelectedDate).text = taskViewModel.date.value
         renderTasks(taskViewModel.tasks.value)
+        eventViewModel.loadWeek(LocalDate.parse(taskViewModel.date.value))
     }
 
     private fun renderTasks(tasks: List<ApiTask>) {
         if (screen != Screen.HOME) return
         val list = findViewById<LinearLayout?>(R.id.taskList) ?: return
-        list.removeAllViews(); findViewById<TextView>(R.id.txtEmptyTasks).visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+        list.removeAllViews()
+        val emptyView = findViewById<TextView?>(R.id.txtEmptyTasks)
+        emptyView?.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+
         val done = tasks.count { it.status.equals("done", true) }
-        findViewById<TextView>(R.id.txtProgress).text = "Hoàn thành $done/${tasks.size} công việc trong ngày"
-        findViewById<ProgressBar>(R.id.progressDay).apply { max = tasks.size.coerceAtLeast(1); progress = done }
+        findViewById<TextView?>(R.id.txtProgress)?.text = "Hoàn thành $done/${tasks.size} công việc trong ngày"
+        findViewById<ProgressBar?>(R.id.progressDay)?.apply { max = tasks.size.coerceAtLeast(1); progress = done }
+
         tasks.sortedBy { it.startTime }.forEach { task ->
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(16, 12, 8, 12); setBackgroundColor(getColor(R.color.zp_surface)) }
-            row.addView(TextView(this).apply { text = "${task.startTime} - ${task.endTime}\n${task.title}\n${task.description}\nƯu tiên: ${task.priority} · ${task.status}"; textSize = 15f; setTextColor(getColor(R.color.zp_text)) }, LinearLayout.LayoutParams(0, -2, 1f))
-            row.addView(Button(this).apply { text = "Sửa"; setOnClickListener { showTaskEditor(task) } })
-            row.addView(Button(this).apply { text = "Xóa"; setOnClickListener { AlertDialog.Builder(this@MainActivity).setTitle("Xóa công việc?").setMessage(task.title).setNegativeButton("Hủy", null).setPositiveButton("Xóa") { _, _ -> taskViewModel.delete(task) }.show() } })
-            list.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8 })
+            list.addView(createTaskCardView(task, list))
+        }
+    }
+
+    private fun createTaskCardView(task: ApiTask, parent: android.view.ViewGroup? = null): View {
+        val view = layoutInflater.inflate(R.layout.item_task, parent, false)
+        view.findViewById<TextView>(R.id.txtTaskTime).text = "⏰ ${task.startTime} - ${task.endTime}"
+
+        val priorityTv = view.findViewById<TextView>(R.id.txtTaskPriority)
+        val (pBg, pColor, pText) = when (task.priority.lowercase()) {
+            "high" -> Triple(R.drawable.bg_badge_high, R.color.zp_priority_high_text, "Cao")
+            "medium" -> Triple(R.drawable.bg_badge_medium, R.color.zp_priority_medium_text, "Vừa")
+            else -> Triple(R.drawable.bg_badge_low, R.color.zp_priority_low_text, "Thấp")
+        }
+        priorityTv.text = pText
+        priorityTv.setTextColor(getColor(pColor))
+        priorityTv.setBackgroundResource(pBg)
+
+        val statusTv = view.findViewById<TextView>(R.id.txtTaskStatus)
+        val (sBg, sColor, sText) = when (task.status.lowercase()) {
+            "done" -> Triple(R.drawable.bg_badge_done, R.color.zp_status_done_text, "✓ Hoàn thành")
+            "in_progress" -> Triple(R.drawable.bg_badge_in_progress, R.color.zp_status_in_progress_text, "⚡ Đang làm")
+            else -> Triple(R.drawable.bg_badge_todo, R.color.zp_status_todo_text, "○ Cần làm")
+        }
+        statusTv.text = sText
+        statusTv.setTextColor(getColor(sColor))
+        statusTv.setBackgroundResource(sBg)
+
+        val titleTv = view.findViewById<TextView>(R.id.txtTaskTitle)
+        titleTv.text = task.title
+        if (task.status.equals("done", true)) {
+            titleTv.paintFlags = titleTv.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+        }
+
+        val descTv = view.findViewById<TextView>(R.id.txtTaskDescription)
+        if (task.description.isNotBlank()) {
+            descTv.text = task.description
+            descTv.visibility = View.VISIBLE
+        } else {
+            descTv.visibility = View.GONE
+        }
+
+        view.findViewById<ImageButton>(R.id.btnEditTask).setOnClickListener { showTaskEditor(task) }
+        view.findViewById<ImageButton>(R.id.btnDeleteTask).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Xóa công việc?")
+                .setMessage("Bạn có chắc muốn xóa \"${task.title}\"?")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa") { _, _ -> taskViewModel.delete(task) }
+                .show()
+        }
+
+        return view
+    }
+
+    private fun createEventCardView(event: ApiEvent, parent: android.view.ViewGroup? = null): View {
+        val view = layoutInflater.inflate(R.layout.item_event, parent, false)
+        view.findViewById<TextView>(R.id.txtEventTime).text = "📅 ${localDateTime(event.startAt)}"
+        view.findViewById<TextView>(R.id.txtEventTitle).text = event.title
+
+        val descTv = view.findViewById<TextView>(R.id.txtEventDescription)
+        if (event.description.isNotBlank()) {
+            descTv.text = event.description
+            descTv.visibility = View.VISIBLE
+        } else {
+            descTv.visibility = View.GONE
+        }
+
+        val locTv = view.findViewById<TextView>(R.id.txtEventLocation)
+        if (event.location.isNotBlank()) {
+            locTv.text = "📍 ${event.location}"
+            locTv.visibility = View.VISIBLE
+        } else {
+            locTv.visibility = View.GONE
+        }
+
+        view.findViewById<ImageButton>(R.id.btnEditEvent).setOnClickListener { showEventEditor(event) }
+        view.findViewById<ImageButton>(R.id.btnDeleteEvent).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Xóa sự kiện?")
+                .setMessage("Bạn có chắc muốn xóa \"${event.title}\"?")
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Xóa") { _, _ -> eventViewModel.delete(event) }
+                .show()
+        }
+
+        return view
+    }
+
+    private fun formatDayName(dayOfWeek: DayOfWeek): String {
+        return when (dayOfWeek) {
+            DayOfWeek.MONDAY -> "T2"
+            DayOfWeek.TUESDAY -> "T3"
+            DayOfWeek.WEDNESDAY -> "T4"
+            DayOfWeek.THURSDAY -> "T5"
+            DayOfWeek.FRIDAY -> "T6"
+            DayOfWeek.SATURDAY -> "T7"
+            DayOfWeek.SUNDAY -> "CN"
         }
     }
 
@@ -114,60 +240,223 @@ class MainActivity : ComponentActivity() {
         screen = Screen.CALENDAR
         setContentView(R.layout.calendar_week)
         findViewById<View>(R.id.btnCalendarBack).setOnClickListener { showHome() }
-        findViewById<View>(R.id.btnCalendarSettings).setOnClickListener { showSettings() }
         findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
         findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
         findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
+        val selectedDate = LocalDate.parse(taskViewModel.date.value)
+        eventViewModel.loadWeek(selectedDate)
         renderCalendar(taskViewModel.tasks.value)
     }
+
     private fun renderCalendar(tasks: List<ApiTask>) {
         if (screen != Screen.CALENDAR) return
-        val selected = LocalDate.parse(taskViewModel.date.value); val start = selected.with(DayOfWeek.MONDAY)
-        findViewById<TextView?>(R.id.txtWeekRange)?.text = "$start – ${start.plusDays(6)}"
-        findViewById<TextView?>(R.id.txtCalendarDate)?.text = "Công việc ngày ${taskViewModel.date.value}"
-        val days = findViewById<LinearLayout?>(R.id.weekDays) ?: return; days.removeAllViews()
-        repeat(7) { i -> val day = start.plusDays(i.toLong()); days.addView(Button(this).apply { text = "${day.dayOfMonth}\n${day.dayOfWeek.name.take(3)}"; isAllCaps = false; setOnClickListener { taskViewModel.goTo(day) } }, LinearLayout.LayoutParams(0, -1, 1f)) }
-        findViewById<LinearLayout?>(R.id.calendarTaskList)?.apply { removeAllViews(); tasks.sortedBy { it.startTime }.forEach { addView(TextView(this@MainActivity).apply { text = "${it.startTime}–${it.endTime}  ${it.title}\n${it.description}"; textSize = 16f; setTextColor(getColor(R.color.zp_text)); setPadding(8, 16, 8, 16) }) } }
+        val selected = LocalDate.parse(taskViewModel.date.value)
+        val start = selected.with(DayOfWeek.MONDAY)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd/MM")
+        findViewById<TextView?>(R.id.txtWeekRange)?.text = "${start.format(dateFormatter)} – ${start.plusDays(6).format(dateFormatter)}"
+        findViewById<TextView?>(R.id.txtCalendarDate)?.text = "Lịch ngày ${selected.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}"
+
+        val days = findViewById<LinearLayout?>(R.id.weekDays) ?: return
+        days.removeAllViews()
+
+        repeat(7) { i ->
+            val day = start.plusDays(i.toLong())
+            val isSelected = day == selected
+            val btn = Button(this).apply {
+                text = "${formatDayName(day.dayOfWeek)}\n${day.dayOfMonth}"
+                isAllCaps = false
+                textSize = 12f
+                setPadding(0, 4, 0, 4)
+                if (isSelected) {
+                    setBackgroundResource(R.drawable.bg_day_chip_selected)
+                    setTextColor(getColor(R.color.zp_on_primary))
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                } else {
+                    setBackgroundResource(R.drawable.bg_day_chip_normal)
+                    setTextColor(getColor(R.color.zp_text))
+                    setTypeface(null, android.graphics.Typeface.NORMAL)
+                }
+                setOnClickListener { taskViewModel.goTo(day) }
+            }
+            val params = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply {
+                marginEnd = if (i < 6) 6 else 0
+            }
+            days.addView(btn, params)
+        }
+
+        findViewById<LinearLayout?>(R.id.calendarTaskList)?.apply {
+            removeAllViews()
+            val eventsList = eventViewModel.events.value
+                .filter { eventIntersectsLocalDate(it, selected) }
+                .sortedBy { localDateTime(it.startAt) }
+            if (tasks.isEmpty() && eventsList.isEmpty()) {
+                addView(TextView(this@MainActivity).apply {
+                    text = "Không có công việc hoặc sự kiện nào trong ngày này."
+                    textSize = 14f
+                    setTextColor(getColor(R.color.zp_muted))
+                    setPadding(16, 32, 16, 32)
+                    gravity = android.view.Gravity.CENTER
+                })
+            }
+            tasks.sortedBy { it.startTime }.forEach { addView(createTaskCardView(it, this)) }
+            eventsList.sortedBy { it.startAt }.forEach { addView(createEventCardView(it, this)) }
+        }
+    }
+
+    private fun createCustomDialog(view: View): AlertDialog {
+        val dialog = AlertDialog.Builder(this).setView(view).create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        return dialog
     }
 
     private fun showTaskEditor(existing: ApiTask?) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_task, null); val title = view.findViewById<EditText>(R.id.edtTaskTitle); val description = view.findViewById<EditText>(R.id.edtTaskDescription); val date = view.findViewById<EditText>(R.id.edtTaskDate); val start = view.findViewById<EditText>(R.id.edtTaskStart); val end = view.findViewById<EditText>(R.id.edtTaskEnd); val priority = view.findViewById<Spinner>(R.id.spinnerPriority); val status = view.findViewById<Spinner>(R.id.spinnerStatus)
-        val priorities = listOf("low", "medium", "high"); val statuses = listOf("todo", "in_progress", "done"); priority.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, priorities); status.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, statuses)
-        title.setText(existing?.title.orEmpty()); description.setText(existing?.description.orEmpty()); date.setText(existing?.date ?: taskViewModel.date.value); start.setText(existing?.startTime ?: "09:00"); end.setText(existing?.endTime ?: "10:00"); priority.setSelection(priorities.indexOf(existing?.priority).coerceAtLeast(0)); status.setSelection(statuses.indexOf(existing?.status).coerceAtLeast(0))
-        val dialog = AlertDialog.Builder(this).setTitle(if (existing == null) "Thêm công việc" else "Sửa công việc").setView(view).setNegativeButton("Hủy", null).setPositiveButton("Lưu", null).create()
-        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val d = runCatching { LocalDate.parse(date.text.toString()) }.getOrNull(); val s = runCatching { LocalTime.parse(start.text.toString()) }.getOrNull(); val e = runCatching { LocalTime.parse(end.text.toString()) }.getOrNull()
-            if (title.text.isNullOrBlank() || d == null || s == null || e == null || !s.isBefore(e)) { Toast.makeText(this, "Kiểm tra tiêu đề, ngày và thời gian.", Toast.LENGTH_LONG).show(); return@setOnClickListener }
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_task, null)
+        val title = view.findViewById<EditText>(R.id.edtTaskTitle)
+        val description = view.findViewById<EditText>(R.id.edtTaskDescription)
+        val date = view.findViewById<EditText>(R.id.edtTaskDate)
+        val start = view.findViewById<EditText>(R.id.edtTaskStart)
+        val end = view.findViewById<EditText>(R.id.edtTaskEnd)
+        val priority = view.findViewById<Spinner>(R.id.spinnerPriority)
+        val status = view.findViewById<Spinner>(R.id.spinnerStatus)
+
+        val priorities = listOf("low", "medium", "high")
+        val priorityLabels = listOf("Mức ưu tiên: Thấp", "Mức ưu tiên: Trung bình", "Mức ưu tiên: Cao")
+        val statuses = listOf("todo", "in_progress", "done")
+        val statusLabels = listOf("Trạng thái: Cần làm", "Trạng thái: Đang làm", "Trạng thái: Hoàn thành")
+
+        priority.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, priorityLabels)
+        status.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, statusLabels)
+
+        title.setText(existing?.title.orEmpty())
+        description.setText(existing?.description.orEmpty())
+        date.setText(existing?.date ?: taskViewModel.date.value)
+        start.setText(existing?.startTime ?: "09:00")
+        end.setText(existing?.endTime ?: "10:00")
+        priority.setSelection(priorities.indexOf(existing?.priority).coerceAtLeast(0))
+        status.setSelection(statuses.indexOf(existing?.status).coerceAtLeast(0))
+
+        val dialog = createCustomDialog(view)
+
+        view.findViewById<Button?>(R.id.btnCancelTask)?.setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button?>(R.id.btnSaveTask)?.setOnClickListener {
+            val d = runCatching { LocalDate.parse(date.text.toString()) }.getOrNull()
+            val s = runCatching { LocalTime.parse(start.text.toString()) }.getOrNull()
+            val e = runCatching { LocalTime.parse(end.text.toString()) }.getOrNull()
+            if (title.text.isNullOrBlank() || d == null || s == null || e == null || !s.isBefore(e)) {
+                Toast.makeText(this, "Vui lòng nhập tiêu đề, ngày (yyyy-MM-dd) và thời gian hợp lệ.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val selectedPriority = priorities.getOrElse(priority.selectedItemPosition) { "low" }
+            val selectedStatus = statuses.getOrElse(status.selectedItemPosition) { "todo" }
+
             val overlap = taskViewModel.tasks.value.any { it.id != existing?.id && it.date == d.toString() && s < LocalTime.parse(it.endTime) && e > LocalTime.parse(it.startTime) }
-            val save = { taskViewModel.save(ApiTask(existing?.id ?: 0, title.text.toString().trim(), description.text.toString().trim(), d.toString(), s.toString(), e.toString(), priority.selectedItem.toString(), status.selectedItem.toString())); dialog.dismiss() }
-            if (overlap) AlertDialog.Builder(this).setTitle("Thời gian bị trùng").setMessage("Bạn vẫn muốn lưu công việc này?").setNegativeButton("Hủy", null).setPositiveButton("Lưu dù trùng") { _, _ -> save() }.show() else save()
-        } }; dialog.show()
+            val save = {
+                taskViewModel.save(ApiTask(existing?.id ?: 0, title.text.toString().trim(), description.text.toString().trim(), d.toString(), s.toString(), e.toString(), selectedPriority, selectedStatus))
+                dialog.dismiss()
+            }
+            if (overlap) {
+                AlertDialog.Builder(this)
+                    .setTitle("Thời gian bị trùng")
+                    .setMessage("Đã có công việc khác trong khoảng thời gian này. Bạn vẫn muốn lưu?")
+                    .setNegativeButton("Hủy", null)
+                    .setPositiveButton("Lưu dù trùng") { _, _ -> save() }
+                    .show()
+            } else save()
+        }
+        dialog.show()
     }
 
-    private fun showSettings() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_cai_dat, null); val dark = v.findViewById<Switch>(R.id.switchDarkMode); val reminders = v.findViewById<Switch>(R.id.switchReminder); dark.isChecked = settings.getBoolean("dark_mode", false); reminders.isChecked = settings.getBoolean("reminders", true); AlertDialog.Builder(this).setView(v).create().also { d -> dark.setOnCheckedChangeListener { _, value -> settings.edit().putBoolean("dark_mode", value).apply(); d.dismiss(); recreate() }; reminders.setOnCheckedChangeListener { _, value -> settings.edit().putBoolean("reminders", value).apply() }; v.findViewById<Button>(R.id.btnCloseSettings).setOnClickListener { d.dismiss() }; d.show() } }
+    private fun localDateTime(value: String): String = runCatching { ZonedDateTime.parse(value).withZoneSameInstant(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) }.getOrDefault(value)
+
+    private fun eventIntersectsLocalDate(event: ApiEvent, date: LocalDate): Boolean {
+        val zone = ZoneId.systemDefault()
+        val dayStart = date.atStartOfDay(zone).toInstant()
+        val dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val eventStart = runCatching { java.time.Instant.parse(event.startAt) }.getOrNull() ?: return false
+        val eventEnd = runCatching { java.time.Instant.parse(event.endAt) }.getOrNull() ?: return false
+        return eventStart < dayEnd && dayStart < eventEnd
+    }
+
+    private fun showEventEditor(existing: ApiEvent?) {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_event, null)
+        val date = v.findViewById<EditText>(R.id.edtEventDate)
+        val start = v.findViewById<EditText>(R.id.edtEventStart)
+        val end = v.findViewById<EditText>(R.id.edtEventEnd)
+        val zone = ZoneId.systemDefault()
+        val startLocal = existing?.let { ZonedDateTime.parse(it.startAt).withZoneSameInstant(zone) }
+        val endLocal = existing?.let { ZonedDateTime.parse(it.endAt).withZoneSameInstant(zone) }
+
+        v.findViewById<EditText>(R.id.edtEventTitle).setText(existing?.title.orEmpty())
+        v.findViewById<EditText>(R.id.edtEventDescription).setText(existing?.description.orEmpty())
+        v.findViewById<EditText>(R.id.edtEventLocation).setText(existing?.location.orEmpty())
+        date.setText(startLocal?.toLocalDate()?.toString() ?: taskViewModel.date.value)
+        start.setText(startLocal?.toLocalTime()?.toString()?.take(5) ?: "09:00")
+        end.setText(endLocal?.toLocalTime()?.toString()?.take(5) ?: "10:00")
+        v.findViewById<EditText>(R.id.edtEventReminder).setText(existing?.reminderMinutes?.toString() ?: "0")
+
+        val dialog = createCustomDialog(v)
+
+        v.findViewById<Button?>(R.id.btnCancelEvent)?.setOnClickListener { dialog.dismiss() }
+        v.findViewById<Button?>(R.id.btnSaveEvent)?.setOnClickListener {
+            runCatching {
+                val day = LocalDate.parse(date.text.toString())
+                val s = LocalTime.parse(start.text.toString())
+                val e = LocalTime.parse(end.text.toString())
+                if (!s.isBefore(e)) error("Thời gian bắt đầu phải trước thời gian kết thúc")
+                val event = ApiEvent(
+                    existing?.id ?: 0,
+                    v.findViewById<EditText>(R.id.edtEventTitle).text.toString().trim(),
+                    v.findViewById<EditText>(R.id.edtEventDescription).text.toString(),
+                    v.findViewById<EditText>(R.id.edtEventLocation).text.toString(),
+                    ZonedDateTime.of(day, s, zone).withZoneSameInstant(java.time.ZoneOffset.UTC).toInstant().toString(),
+                    ZonedDateTime.of(day, e, zone).withZoneSameInstant(java.time.ZoneOffset.UTC).toInstant().toString(),
+                    v.findViewById<EditText>(R.id.edtEventReminder).text.toString().toIntOrNull() ?: 0
+                )
+                eventViewModel.save(event)
+                dialog.dismiss()
+            }.onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }
+        }
+        dialog.show()
+    }
+
+    private fun showEventOverlap(events: List<ApiEvent>) { AlertDialog.Builder(this).setTitle("Sự kiện bị trùng").setMessage(events.joinToString("\n") { "${it.title}: ${localDateTime(it.startAt)}" }.ifBlank { "Có sự kiện khác trong khoảng thời gian này." }).setNegativeButton("Hủy") { _, _ -> eventViewModel.clearOverlap() }.setPositiveButton("Tiếp tục lưu") { _, _ -> eventViewModel.confirmOverlap() }.show() }
 
     private fun showProfile() {
         screen = Screen.PROFILE
         setContentView(R.layout.trangcanhan)
         findViewById<TextView>(R.id.txtProfileName).text = settings.getString("profile_name", "Lục Bảo")
+        findViewById<ImageView>(R.id.imgProfileAvatar).apply {
+            val uri = settings.getString("profile_avatar_uri", null)
+            if (uri.isNullOrBlank()) setImageResource(R.drawable.ic_avatar_default) else setImageURI(Uri.parse(uri))
+        }
         findViewById<TextView>(R.id.txtProfileEmail).text = settings.getString("profile_email", "").orEmpty().ifBlank { "Tài khoản ZPlanner" }
         findViewById<View>(R.id.btnProfileBack).setOnClickListener { showHome() }
-        findViewById<View>(R.id.btnProfileSettings).setOnClickListener { showSettings() }
+        val darkMode = findViewById<Switch>(R.id.btnDarkMode)
+        val reminders = findViewById<Switch>(R.id.btnReminders)
+        darkMode.isChecked = settings.getBoolean("dark_mode", false)
+        reminders.isChecked = settings.getBoolean("reminders", true)
+        darkMode.setOnCheckedChangeListener { _, enabled ->
+            settings.edit().putBoolean("dark_mode", enabled).apply()
+            applyThemeColors()
+            recreate()
+        }
+        reminders.setOnCheckedChangeListener { _, enabled ->
+            settings.edit().putBoolean("reminders", enabled).apply()
+        }
         findViewById<View>(R.id.btnLogoutProfile).setOnClickListener { showLogout() }
         findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
         findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
         findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
         findViewById<View>(R.id.btnEditProfile).setOnClickListener { showProfileEditor() }
         findViewById<View>(R.id.btnManageCalendar).setOnClickListener { showWeekCalendar() }
-        findViewById<View>(R.id.btnDarkMode).setOnClickListener { showSettings() }
-        findViewById<View>(R.id.btnReminders).setOnClickListener { showSettings() }
         findViewById<View>(R.id.btnHelp).setOnClickListener { showInfoDialog("Trung tâm trợ giúp", "Bạn có thể quản lý lịch, nhiệm vụ và cài đặt trong ứng dụng.") }
         findViewById<View>(R.id.btnAbout).setOnClickListener { showInfoDialog("Về ZPlanner", "ZPlanner v1.0\nỨng dụng lập kế hoạch cá nhân.") }
     }
+
     private fun showForgotPassword() {
         val v = LayoutInflater.from(this).inflate(R.layout.dialog_quen_mat_khau, null)
         val email = v.findViewById<EditText>(R.id.edtResetEmail)
-        val dialog = AlertDialog.Builder(this).setView(v).create()
+        val dialog = createCustomDialog(v)
         v.findViewById<Button>(R.id.btnCancelReset).setOnClickListener { dialog.dismiss() }
         v.findViewById<Button>(R.id.btnSendReset).setOnClickListener {
             if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.text.toString().trim()).matches()) {
@@ -181,9 +470,39 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showInfoDialog(title: String, message: String) {
-        AlertDialog.Builder(this).setTitle(title).setMessage(message).setPositiveButton("Đóng", null).show()
+        val dialog = AlertDialog.Builder(this).setTitle(title).setMessage(message).setPositiveButton("Đóng", null).create()
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_dialog)
+        dialog.show()
     }
 
-    private fun showProfileEditor() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_chinhsua_hoso, null); val name = v.findViewById<EditText>(R.id.edtProfileName); name.setText(settings.getString("profile_name", "Lục Bảo")); AlertDialog.Builder(this).setView(v).create().also { d -> v.findViewById<Button>(R.id.btnChangeAvatar).setOnClickListener { Toast.makeText(this, "Thay ảnh đại diện chưa được hỗ trợ.", Toast.LENGTH_SHORT).show() }; v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { d.dismiss() }; v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener { if (name.text.isNullOrBlank()) { name.error = "Nhập họ tên" } else { settings.edit().putString("profile_name", name.text.toString().trim()).apply(); d.dismiss(); showProfile() } }; d.show() } }
-    private fun showLogout() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_xac_nhan_dang_xuat, null); AlertDialog.Builder(this).setView(v).create().also { d -> v.findViewById<Button>(R.id.btnCancelLogout).setOnClickListener { d.dismiss() }; v.findViewById<Button>(R.id.btnConfirmLogout).setOnClickListener { d.dismiss(); auth.signOut() }; d.show() } }
+    private fun showProfileEditor() {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_chinhsua_hoso, null)
+        val name = v.findViewById<EditText>(R.id.edtProfileName)
+        profileEditorAvatar = v.findViewById(R.id.imgProfileAvatarPreview)
+        name.setText(settings.getString("profile_name", "Lục Bảo"))
+        settings.getString("profile_avatar_uri", null)?.let { profileEditorAvatar?.setImageURI(Uri.parse(it)) } ?: profileEditorAvatar?.setImageResource(R.drawable.ic_avatar_default)
+        val dialog = createCustomDialog(v)
+        v.findViewById<Button>(R.id.btnChangeAvatar).setOnClickListener {
+            avatarPicker.launch(arrayOf("image/*"))
+        }
+        v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { profileEditorAvatar = null; dialog.dismiss() }
+        v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener {
+            if (name.text.isNullOrBlank()) name.error = "Nhập họ tên" else {
+                settings.edit().putString("profile_name", name.text.toString().trim()).apply()
+                profileEditorAvatar = null
+                dialog.dismiss()
+                showProfile()
+            }
+        }
+        dialog.setOnDismissListener { profileEditorAvatar = null }
+        dialog.show()
+    }
+
+    private fun showLogout() {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_xac_nhan_dang_xuat, null)
+        val dialog = createCustomDialog(v)
+        v.findViewById<Button>(R.id.btnCancelLogout).setOnClickListener { dialog.dismiss() }
+        v.findViewById<Button>(R.id.btnConfirmLogout).setOnClickListener { dialog.dismiss(); auth.signOut() }
+        dialog.show()
+    }
 }

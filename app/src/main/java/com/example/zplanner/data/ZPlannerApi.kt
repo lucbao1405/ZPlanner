@@ -30,4 +30,16 @@ interface ZPlannerApi {
 
     @DELETE("tasks/{id}")
     suspend fun delete(@Path("id") id: Long): Response<Unit>
+
+    @GET("events")
+    suspend fun events(@Query("from") from: String, @Query("to") to: String): Response<EventsResponse>
+
+    @POST("events")
+    suspend fun createEvent(@Body event: ApiEventRequest): Response<EventResponse>
+
+    @PUT("events/{id}")
+    suspend fun updateEvent(@Path("id") id: Long, @Body event: ApiEventRequest): Response<EventResponse>
+
+    @DELETE("events/{id}")
+    suspend fun deleteEvent(@Path("id") id: Long): Response<Unit>
 }

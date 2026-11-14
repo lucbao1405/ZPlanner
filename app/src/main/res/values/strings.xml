@@ -52,6 +52,10 @@
     <string name="tasks_label">Nhiệm vụ</string>
     <string name="profile_label">Cá nhân</string>
     <string name="task_details">Chi tiết công việc</string>
+    <string name="task_subtitle">Tạo lịch trình rõ ràng và dễ theo dõi</string>
+    <string name="task_section_info">Thông tin công việc</string>
+    <string name="task_section_time">Thời gian thực hiện</string>
+    <string name="task_section_category">Phân loại</string>
     <string name="task_title_hint">Tiêu đề công việc</string>
     <string name="description_hint">Mô tả</string>
     <string name="date_hint">Ngày yyyy-MM-dd</string>
@@ -67,4 +71,11 @@
     <string name="logout_title">Đăng xuất tài khoản?</string>
     <string name="logout_message">Bạn có chắc muốn đăng xuất khỏi thiết bị này không?</string>
     <string name="stay">Ở lại</string>
+    <string name="edit">Sửa</string>
+    <string name="delete">Xóa</string>
+    <string name="profile_edit_subtitle">Cập nhật thông tin để hồ sơ luôn chính xác</string>
+    <string name="avatar_description">Ảnh đại diện</string>
+    <string name="change_avatar_hint">Chạm vào camera để đổi ảnh</string>
+    <string name="name_label">Họ và tên</string>
+    <string name="event_label">Sự kiện</string>
 </resources>
