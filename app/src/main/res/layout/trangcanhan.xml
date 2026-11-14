@@ -10,6 +10,39 @@
     android:orientation="vertical"
     android:background="@color/zp_background">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+        <ImageButton
+            android:id="@+id/btnProfileBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_arrow_back"
+            android:padding="12dp"
+            android:tint="@color/zp_primary"
+            android:contentDescription="Quay lại" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cá nhân"
+            android:textColor="@color/zp_text"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+        <ImageButton
+            android:id="@+id/btnProfileSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_settings" android:padding="12dp"
+            android:tint="@color/zp_primary"
+            android:contentDescription="Mở cài đặt" />
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -110,14 +143,19 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:drawablePadding="16dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:id="@+id/btnEditProfile"
-                    android:text="✎   Chỉnh sửa thông tin cá nhân                                      ›"
+                    android:drawableStart="@drawable/ic_edit"
+                    android:drawableEnd="@drawable/ic_chevron_right"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Chỉnh sửa thông tin cá nhân"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <View
                     android:layout_width="match_parent"
@@ -125,14 +163,21 @@
                     android:background="@color/zp_divider" />
 
                 <TextView
+                    android:id="@+id/btnManageCalendar"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
-                    android:text="▣   Quản lý lịch và nhiệm vụ                                      ›"
+                    android:drawableStart="@drawable/ic_calendar"
+                    android:drawableEnd="@drawable/ic_chevron_right"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Quản lý lịch và nhiệm vụ"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
             <TextView
@@ -153,14 +198,20 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/btnDarkMode"
                     android:layout_width="match_parent"
                     android:layout_height="58dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
-                    android:text="☾   Giao diện tối                                      Tắt"
+                    android:drawableStart="@drawable/ic_settings"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Giao diện tối"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <View
                     android:layout_width="match_parent"
@@ -168,14 +219,20 @@
                     android:background="@color/zp_divider" />
 
                 <TextView
+                    android:id="@+id/btnReminders"
                     android:layout_width="match_parent"
                     android:layout_height="58dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
-                    android:text="◷   Nhắc nhở công việc                                  Bật"
+                    android:drawableStart="@drawable/ic_task"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Nhắc nhở công việc"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <View
                     android:layout_width="match_parent"
@@ -211,14 +268,21 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/btnHelp"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
-                    android:text="Trung tâm trợ giúp                                      ›"
+                    android:drawableStart="@drawable/ic_help"
+                    android:drawableEnd="@drawable/ic_chevron_right"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Trung tâm trợ giúp"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <View
                     android:layout_width="match_parent"
@@ -226,14 +290,20 @@
                     android:background="@color/zp_divider" />
 
                 <TextView
+                    android:id="@+id/btnAbout"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:gravity="center_vertical"
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
-                    android:text="ⓘ   Về ZPlanner                                      v1.0"
+                    android:drawableStart="@drawable/ic_info"
+                    android:drawableTint="@color/zp_primary"
+                    android:drawablePadding="14dp"
+                    android:text="Về ZPlanner  ·  v1.0"
                     android:textColor="@color/zp_text"
-                    android:textSize="15sp" />
+                    android:textSize="15sp"
+                    android:clickable="true"
+                    android:focusable="true" />
             </LinearLayout>
 
             <TextView
@@ -266,7 +336,43 @@
             android:layout_weight="1"
             android:gravity="center"
             android:clickable="true"
-            android:text="⌂\nTrang chủ"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_home"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/home_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/navCalendar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_calendar"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/calendar_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/navTasks"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_task"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/tasks_label"
             android:textColor="@color/zp_nav_muted"
             android:textSize="12sp" />
 
@@ -275,25 +381,11 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="▣\nLịch"
-            android:textColor="@color/zp_nav_muted"
-            android:textSize="12sp" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="✓\nNhiệm vụ"
-            android:textColor="@color/zp_nav_muted"
-            android:textSize="12sp" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="●\nCá nhân"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_person"
+            android:drawableTint="@color/zp_primary"
+            android:drawablePadding="2dp"
+            android:text="@string/profile_label"
             android:textColor="@color/zp_primary"
             android:textSize="12sp"
             android:textStyle="bold" />

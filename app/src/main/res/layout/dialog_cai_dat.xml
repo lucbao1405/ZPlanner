@@ -2,26 +2,49 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:theme="@style/Theme.ZPlanner.Preview"
-    tools:background="@color/zp_surface"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Cài đặt ứng dụng"
-        android:textColor="@color/zp_text"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/zp_primary"
+            android:contentDescription="@null" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/settings_title"
+            android:textColor="@color/zp_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Tùy chỉnh trải nghiệm của bạn"
+        android:textColor="@color/zp_muted"
+        android:textSize="13sp" />
 
     <Switch
         android:id="@+id/switchDarkMode"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:layout_marginTop="12dp"
-        android:text="Giao diện tối"
+        android:layout_marginTop="14dp"
+        android:buttonTint="@color/zp_primary"
+        android:text="@string/dark_mode"
         android:textColor="@color/zp_text"
         android:textSize="15sp" />
 
@@ -29,24 +52,31 @@
         android:id="@+id/switchReminder"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:text="Nhắc nhở công việc"
+        android:buttonTint="@color/zp_primary"
+        android:text="@string/reminders"
         android:textColor="@color/zp_text"
         android:textSize="15sp" />
 
     <TextView
         android:id="@+id/btnStartOfWeek"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_nav_item"
+        android:drawableEnd="@drawable/ic_chevron_right"
+        android:drawableTint="@color/zp_primary"
         android:gravity="center_vertical"
-        android:text="Ngày bắt đầu tuần                         Thứ Hai"
+        android:text="@string/start_of_week"
         android:textColor="@color/zp_text"
         android:textSize="15sp" />
 
     <Button
         android:id="@+id/btnCloseSettings"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_gravity="end"
-        android:text="Xong"
-        android:textAllCaps="false" />
+        android:layout_marginTop="14dp"
+        android:backgroundTint="@color/zp_primary"
+        android:text="@string/done"
+        android:textAllCaps="false"
+        android:textColor="@color/zp_on_primary"
+        android:textStyle="bold" />
 </LinearLayout>

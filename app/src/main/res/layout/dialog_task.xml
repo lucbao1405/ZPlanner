@@ -1,12 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" tools:theme="@style/Theme.ZPlanner.Preview" tools:background="@color/zp_surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:fillViewport="true" android:background="@color/zp_surface">
- <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="4dp">
-  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/task_details" android:textColor="@color/zp_text" android:textSize="20sp" android:textStyle="bold"/>
-  <EditText android:id="@+id/edtTaskTitle" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="12dp" android:background="@drawable/bg_input" android:hint="@string/task_title_hint" android:textColor="@color/zp_text" android:inputType="textCapSentences" android:textColorHint="@color/zp_muted" android:singleLine="true" android:paddingStart="14dp" android:paddingEnd="14dp"/>
-  <EditText android:id="@+id/edtTaskDescription" android:layout_width="match_parent" android:layout_height="80dp" android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:gravity="top" android:hint="@string/description_hint" android:textColor="@color/zp_text" android:textColorHint="@color/zp_muted" android:padding="14dp" android:inputType="textMultiLine"/>
-  <EditText android:id="@+id/edtTaskDate" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:hint="@string/date_hint" android:textColor="@color/zp_text" android:inputType="date" android:textColorHint="@color/zp_muted" android:singleLine="true" android:paddingStart="14dp" android:paddingEnd="14dp"/>
-  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"><EditText android:id="@+id/edtTaskStart" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:background="@drawable/bg_input" android:hint="@string/start_hint" android:textColor="@color/zp_text" android:inputType="time" android:textColorHint="@color/zp_muted" android:singleLine="true" android:paddingStart="14dp" android:paddingEnd="14dp"/><Space android:layout_width="10dp" android:layout_height="1dp"/><EditText android:id="@+id/edtTaskEnd" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:background="@drawable/bg_input" android:hint="@string/end_hint" android:textColor="@color/zp_text" android:inputType="time" android:textColorHint="@color/zp_muted" android:singleLine="true" android:paddingStart="14dp" android:paddingEnd="14dp"/></LinearLayout>
-  <Spinner android:id="@+id/spinnerPriority" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp"/>
-  <Spinner android:id="@+id/spinnerStatus" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="4dp"/>
- </LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:theme="@style/Theme.ZPlanner.Preview"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:background="@drawable/bg_dialog">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_task"
+                android:tint="@color/zp_primary"
+                android:contentDescription="@null" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:text="@string/task_details"
+                android:textColor="@color/zp_text"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Tạo lịch trình rõ ràng và dễ theo dõi"
+            android:textColor="@color/zp_muted"
+            android:textSize="13sp" />
+        <EditText
+            android:id="@+id/edtTaskTitle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_input"
+            android:hint="@string/task_title_hint"
+            android:inputType="textCapSentences"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted" />
+        <EditText
+            android:id="@+id/edtTaskDescription"
+            android:layout_width="match_parent"
+            android:layout_height="84dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:gravity="top"
+            android:hint="@string/description_hint"
+            android:inputType="textMultiLine|textCapSentences"
+            android:padding="14dp"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted" />
+        <EditText
+            android:id="@+id/edtTaskDate"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:hint="@string/date_hint"
+            android:inputType="date"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <EditText
+                android:id="@+id/edtTaskStart"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="@string/start_hint"
+                android:inputType="time"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:singleLine="true"
+                android:textColor="@color/zp_text"
+                android:textColorHint="@color/zp_muted" />
+            <Space android:layout_width="10dp" android:layout_height="1dp" />
+            <EditText
+                android:id="@+id/edtTaskEnd"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="@string/end_hint"
+                android:inputType="time"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:singleLine="true"
+                android:textColor="@color/zp_text"
+                android:textColorHint="@color/zp_muted" />
+        </LinearLayout>
+        <Spinner
+            android:id="@+id/spinnerPriority"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp" />
+        <Spinner
+            android:id="@+id/spinnerStatus"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 </ScrollView>
