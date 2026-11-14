@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:theme="@style/Theme.ZPlanner.Preview"
+    tools:background="@color/zp_surface"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cài đặt ứng dụng"
+        android:textColor="@color/zp_text"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <Switch
+        android:id="@+id/switchDarkMode"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
+        android:text="Giao diện tối"
+        android:textColor="@color/zp_text"
+        android:textSize="15sp" />
+
+    <Switch
+        android:id="@+id/switchReminder"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Nhắc nhở công việc"
+        android:textColor="@color/zp_text"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/btnStartOfWeek"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:text="Ngày bắt đầu tuần                         Thứ Hai"
+        android:textColor="@color/zp_text"
+        android:textSize="15sp" />
+
+    <Button
+        android:id="@+id/btnCloseSettings"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_gravity="end"
+        android:text="Xong"
+        android:textAllCaps="false" />
+</LinearLayout>

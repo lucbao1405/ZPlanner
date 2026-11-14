@@ -15,13 +15,14 @@ class TokenStore(context: Context) {
     private val keyAlias = "zplanner_session_key"
 
     fun read(): String? = preferences.getString("token", null)?.let(::decrypt)
+    fun readEmail(): String = preferences.getString("email", "").orEmpty()
 
-    fun save(token: String) {
-        preferences.edit().putString("token", encrypt(token)).apply()
+    fun save(token: String, email: String = "") {
+        preferences.edit().putString("token", encrypt(token)).putString("email", email).apply()
     }
 
     fun clear() {
-        preferences.edit().remove("token").apply()
+        preferences.edit().remove("token").remove("email").apply()
     }
 
     private fun key(): java.security.Key {

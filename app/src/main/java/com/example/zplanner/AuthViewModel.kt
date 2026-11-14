@@ -29,7 +29,7 @@ class AuthViewModel @Inject constructor(
                 if (register) api.register(Credentials(email.trim(), password)) else api.login(Credentials(email.trim(), password))
             }.onSuccess { response ->
                 if (response.isSuccessful && response.body() != null) {
-                    tokenStore.save(response.body()!!.accessToken)
+                    tokenStore.save(response.body()!!.accessToken, email.trim())
                     _signedIn.value = true
                 } else error.value = "Email hoặc mật khẩu không hợp lệ."
             }.onFailure { error.value = "Không thể kết nối máy chủ cục bộ." }
