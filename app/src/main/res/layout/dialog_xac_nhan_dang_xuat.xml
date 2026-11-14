@@ -2,50 +2,66 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:theme="@style/Theme.ZPlanner.Preview"
-    tools:background="@color/zp_surface"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/logout_title"
-        android:textColor="@color/zp_text"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_info"
+            android:tint="@color/zp_danger"
+            android:contentDescription="@null" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/logout_title"
+            android:textColor="@color/zp_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="@string/logout_message"
         android:textColor="@color/zp_muted"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:lineSpacingExtra="2dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="18dp"
         android:gravity="end"
         android:orientation="horizontal">
-
         <Button
             android:id="@+id/btnCancelLogout"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
+            android:minWidth="88dp"
             android:text="@string/stay"
             android:textAllCaps="false" />
-
         <Button
             android:id="@+id/btnConfirmLogout"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="@color/zp_danger"
+            android:minWidth="112dp"
             android:text="@string/logout"
             android:textAllCaps="false"
-            android:textColor="@color/zp_on_primary" />
+            android:textColor="@color/zp_on_primary"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

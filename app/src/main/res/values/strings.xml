@@ -47,6 +47,10 @@
     <string name="calendar_nav">▣\nLịch</string>
     <string name="tasks_nav">✓\nNhiệm vụ</string>
     <string name="profile_nav">●\nCá nhân</string>
+    <string name="home_label">Trang chủ</string>
+    <string name="calendar_label">Lịch</string>
+    <string name="tasks_label">Nhiệm vụ</string>
+    <string name="profile_label">Cá nhân</string>
     <string name="task_details">Chi tiết công việc</string>
     <string name="task_title_hint">Tiêu đề công việc</string>
     <string name="description_hint">Mô tả</string>

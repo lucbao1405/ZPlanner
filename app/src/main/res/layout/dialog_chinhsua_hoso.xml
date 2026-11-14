@@ -2,19 +2,41 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:theme="@style/Theme.ZPlanner.Preview"
-    tools:background="@color/zp_surface"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog"
     android:orientation="vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/edit_profile_title"
-        android:textColor="@color/zp_text"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_edit"
+            android:tint="@color/zp_primary"
+            android:contentDescription="@null" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/edit_profile_title"
+            android:textColor="@color/zp_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Cập nhật thông tin để hồ sơ luôn chính xác"
+        android:textColor="@color/zp_muted"
+        android:textSize="13sp" />
 
     <EditText
         android:id="@+id/edtProfileName"
@@ -23,10 +45,12 @@
         android:layout_marginTop="16dp"
         android:background="@drawable/bg_input"
         android:hint="@string/name_hint"
-        android:inputType="textPersonName"
+        android:inputType="textPersonName|textCapWords"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
         android:singleLine="true"
+        android:textColor="@color/zp_text"
+        android:textColorHint="@color/zp_muted"
         android:autofillHints="name" />
 
     <Button
@@ -34,31 +58,35 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="10dp"
+        android:backgroundTint="@color/zp_surface_alt"
         android:text="@string/change_avatar"
-        android:textAllCaps="false" />
+        android:textAllCaps="false"
+        android:textColor="@color/zp_primary"
+        android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="18dp"
         android:gravity="end"
         android:orientation="horizontal">
-
         <Button
             android:id="@+id/btnCancelProfile"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
+            android:minWidth="88dp"
             android:text="@string/cancel"
             android:textAllCaps="false" />
-
         <Button
             android:id="@+id/btnSaveProfile"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:backgroundTint="@color/zp_primary"
+            android:minWidth="120dp"
             android:text="@string/save_changes"
             android:textAllCaps="false"
-            android:textColor="@color/zp_on_primary" />
+            android:textColor="@color/zp_on_primary"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

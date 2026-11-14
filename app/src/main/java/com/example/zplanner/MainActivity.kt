@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
             password.setSelection(password.length())
         }
         findViewById<View>(R.id.btnRegister).setOnClickListener { registerMode = !registerMode; login.text = if (registerMode) "Đăng ký" else "Đăng nhập"; (it as TextView).text = if (registerMode) "Đã có tài khoản? Đăng nhập" else "Đăng ký ngay" }
-        findViewById<View>(R.id.btnForgotPassword).setOnClickListener { Toast.makeText(this, "Đặt lại mật khẩu chưa được máy chủ hỗ trợ.", Toast.LENGTH_LONG).show() }
+        findViewById<View>(R.id.btnForgotPassword).setOnClickListener { showForgotPassword() }
         findViewById<View>(R.id.btnGoogle).setOnClickListener { Toast.makeText(this, "Đăng nhập Google chưa được cấu hình.", Toast.LENGTH_LONG).show() }
         login.setOnClickListener {
             val e = email.text.toString().trim(); val p = password.text.toString()
@@ -111,8 +111,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showWeekCalendar() {
-        screen = Screen.CALENDAR; setContentView(R.layout.calendar_week); renderCalendar(taskViewModel.tasks.value)
+        screen = Screen.CALENDAR
+        setContentView(R.layout.calendar_week)
         findViewById<View>(R.id.btnCalendarBack).setOnClickListener { showHome() }
+        findViewById<View>(R.id.btnCalendarSettings).setOnClickListener { showSettings() }
+        findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
+        findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
+        findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
+        renderCalendar(taskViewModel.tasks.value)
     }
     private fun renderCalendar(tasks: List<ApiTask>) {
         if (screen != Screen.CALENDAR) return
@@ -140,7 +146,44 @@ class MainActivity : ComponentActivity() {
 
     private fun showSettings() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_cai_dat, null); val dark = v.findViewById<Switch>(R.id.switchDarkMode); val reminders = v.findViewById<Switch>(R.id.switchReminder); dark.isChecked = settings.getBoolean("dark_mode", false); reminders.isChecked = settings.getBoolean("reminders", true); AlertDialog.Builder(this).setView(v).create().also { d -> dark.setOnCheckedChangeListener { _, value -> settings.edit().putBoolean("dark_mode", value).apply(); d.dismiss(); recreate() }; reminders.setOnCheckedChangeListener { _, value -> settings.edit().putBoolean("reminders", value).apply() }; v.findViewById<Button>(R.id.btnCloseSettings).setOnClickListener { d.dismiss() }; d.show() } }
 
-    private fun showProfile() { screen = Screen.PROFILE; setContentView(R.layout.trangcanhan); findViewById<TextView>(R.id.txtProfileName).text = settings.getString("profile_name", "Lục Bảo"); findViewById<TextView>(R.id.txtProfileEmail).text = settings.getString("profile_email", "").orEmpty().ifBlank { "Tài khoản ZPlanner" }; findViewById<View>(R.id.btnLogoutProfile).setOnClickListener { showLogout() }; findViewById<View>(R.id.navHome).setOnClickListener { showHome() }; findViewById<View>(R.id.btnEditProfile).setOnClickListener { showProfileEditor() } }
-    private fun showProfileEditor() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_chinhsua_hoso, null); val name = v.findViewById<EditText>(R.id.edtProfileName); name.setText(settings.getString("profile_name", "Lục Bảo")); AlertDialog.Builder(this).setView(v).create().also { d -> v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { d.dismiss() }; v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener { if (name.text.isNullOrBlank()) { name.error = "Nhập họ tên" } else { settings.edit().putString("profile_name", name.text.toString().trim()).apply(); d.dismiss(); showProfile() } }; d.show() } }
+    private fun showProfile() {
+        screen = Screen.PROFILE
+        setContentView(R.layout.trangcanhan)
+        findViewById<TextView>(R.id.txtProfileName).text = settings.getString("profile_name", "Lục Bảo")
+        findViewById<TextView>(R.id.txtProfileEmail).text = settings.getString("profile_email", "").orEmpty().ifBlank { "Tài khoản ZPlanner" }
+        findViewById<View>(R.id.btnProfileBack).setOnClickListener { showHome() }
+        findViewById<View>(R.id.btnProfileSettings).setOnClickListener { showSettings() }
+        findViewById<View>(R.id.btnLogoutProfile).setOnClickListener { showLogout() }
+        findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
+        findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
+        findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
+        findViewById<View>(R.id.btnEditProfile).setOnClickListener { showProfileEditor() }
+        findViewById<View>(R.id.btnManageCalendar).setOnClickListener { showWeekCalendar() }
+        findViewById<View>(R.id.btnDarkMode).setOnClickListener { showSettings() }
+        findViewById<View>(R.id.btnReminders).setOnClickListener { showSettings() }
+        findViewById<View>(R.id.btnHelp).setOnClickListener { showInfoDialog("Trung tâm trợ giúp", "Bạn có thể quản lý lịch, nhiệm vụ và cài đặt trong ứng dụng.") }
+        findViewById<View>(R.id.btnAbout).setOnClickListener { showInfoDialog("Về ZPlanner", "ZPlanner v1.0\nỨng dụng lập kế hoạch cá nhân.") }
+    }
+    private fun showForgotPassword() {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_quen_mat_khau, null)
+        val email = v.findViewById<EditText>(R.id.edtResetEmail)
+        val dialog = AlertDialog.Builder(this).setView(v).create()
+        v.findViewById<Button>(R.id.btnCancelReset).setOnClickListener { dialog.dismiss() }
+        v.findViewById<Button>(R.id.btnSendReset).setOnClickListener {
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.text.toString().trim()).matches()) {
+                email.error = "Nhập email hợp lệ"
+            } else {
+                Toast.makeText(this, "Tính năng đặt lại mật khẩu chưa được hỗ trợ (chưa có API).", Toast.LENGTH_LONG).show()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showInfoDialog(title: String, message: String) {
+        AlertDialog.Builder(this).setTitle(title).setMessage(message).setPositiveButton("Đóng", null).show()
+    }
+
+    private fun showProfileEditor() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_chinhsua_hoso, null); val name = v.findViewById<EditText>(R.id.edtProfileName); name.setText(settings.getString("profile_name", "Lục Bảo")); AlertDialog.Builder(this).setView(v).create().also { d -> v.findViewById<Button>(R.id.btnChangeAvatar).setOnClickListener { Toast.makeText(this, "Thay ảnh đại diện chưa được hỗ trợ.", Toast.LENGTH_SHORT).show() }; v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { d.dismiss() }; v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener { if (name.text.isNullOrBlank()) { name.error = "Nhập họ tên" } else { settings.edit().putString("profile_name", name.text.toString().trim()).apply(); d.dismiss(); showProfile() } }; d.show() } }
     private fun showLogout() { val v = LayoutInflater.from(this).inflate(R.layout.dialog_xac_nhan_dang_xuat, null); AlertDialog.Builder(this).setView(v).create().also { d -> v.findViewById<Button>(R.id.btnCancelLogout).setOnClickListener { d.dismiss() }; v.findViewById<Button>(R.id.btnConfirmLogout).setOnClickListener { d.dismiss(); auth.signOut() }; d.show() } }
 }
