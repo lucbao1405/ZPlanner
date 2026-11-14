@@ -1,20 +1,24 @@
 package com.example.zplanner
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -24,19 +28,24 @@ fun AuthScreen(viewModel: AuthViewModel) {
     var register by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(if (register) "Đăng ký" else "Đăng nhập")
-        OutlinedTextField(email, { email = it }, label = { Text("Email") }, singleLine = true)
-        OutlinedTextField(password, { password = it }, label = { Text("Mật khẩu") }, singleLine = true)
-        error?.let { Text(it) }
-        Button(enabled = !loading, onClick = { viewModel.submit(email, password, register) }) {
-            if (loading) CircularProgressIndicator() else Text(if (register) "Đăng ký" else "Đăng nhập")
-        }
-        Button(onClick = { register = !register }) {
-            Text(if (register) "Đã có tài khoản? Đăng nhập" else "Tạo tài khoản")
+    Surface(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("ZPlanner", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
+            Text(if (register) "Tạo tài khoản mới" else "Chào mừng bạn trở lại", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(28.dp))
+            OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email") }, singleLine = true)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Mật khẩu") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp)) }
+            Spacer(Modifier.height(18.dp))
+            Button(enabled = !loading && email.isNotBlank() && password.isNotBlank(), onClick = { viewModel.submit(email, password, register) }, modifier = Modifier.fillMaxWidth()) {
+                if (loading) CircularProgressIndicator() else Text(if (register) "Đăng ký" else "Đăng nhập")
+            }
+            TextButton(onClick = { register = !register }) { Text(if (register) "Đã có tài khoản? Đăng nhập" else "Tạo tài khoản mới") }
         }
     }
 }

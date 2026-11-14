@@ -1,0 +1,13 @@
+<resources>
+    <color name="zp_background">#F8F7FC</color>
+    <color name="zp_surface">#FFFFFF</color>
+    <color name="zp_surface_alt">#F0EDFF</color>
+    <color name="zp_primary">#6C4ED9</color>
+    <color name="zp_primary_dark">#4E35A8</color>
+    <color name="zp_text">#211D35</color>
+    <color name="zp_muted">#756F86</color>
+    <color name="zp_border">#E5E0F0</color>
+    <color name="zp_danger">#D9535F</color>
+    <color name="zp_success">#28A779</color>
+    <color name="zp_warm">#FFF4E8</color>
+</resources>
