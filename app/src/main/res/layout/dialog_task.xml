@@ -6,44 +6,68 @@
     android:layout_height="wrap_content"
     android:fillViewport="true"
     android:background="@drawable/bg_dialog">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
+
             <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="8dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_icon_circle_primary"
+                android:contentDescription="@null"
+                android:padding="12dp"
                 android:src="@drawable/ic_task"
-                android:tint="@color/zp_primary"
-                android:contentDescription="@null" />
-            <TextView
+                android:tint="@color/zp_primary" />
+
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="14dp"
                 android:layout_weight="1"
-                android:text="@string/task_details"
-                android:textColor="@color/zp_text"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/task_details"
+                    android:textColor="@color/zp_text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/task_subtitle"
+                    android:textColor="@color/zp_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- Section 1: Info -->
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Tạo lịch trình rõ ràng và dễ theo dõi"
-            android:textColor="@color/zp_muted"
-            android:textSize="13sp" />
+            android:layout_marginTop="20dp"
+            android:text="@string/task_section_info"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <EditText
             android:id="@+id/edtTaskTitle"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
             android:hint="@string/task_title_hint"
             android:inputType="textCapSentences"
@@ -51,11 +75,13 @@
             android:paddingEnd="14dp"
             android:singleLine="true"
             android:textColor="@color/zp_text"
-            android:textColorHint="@color/zp_muted" />
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
         <EditText
             android:id="@+id/edtTaskDescription"
             android:layout_width="match_parent"
-            android:layout_height="84dp"
+            android:layout_height="80dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
             android:gravity="top"
@@ -63,62 +89,144 @@
             android:inputType="textMultiLine|textCapSentences"
             android:padding="14dp"
             android:textColor="@color/zp_text"
-            android:textColorHint="@color/zp_muted" />
+            android:textColorHint="@color/zp_muted"
+            android:textSize="14sp" />
+
+        <!-- Section 2: Time -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/task_section_time"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <EditText
             android:id="@+id/edtTaskDate"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
+            android:drawableStart="@drawable/ic_calendar"
+            android:drawablePadding="10dp"
+            android:drawableTint="@color/zp_muted"
             android:hint="@string/date_hint"
             android:inputType="date"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
             android:singleLine="true"
             android:textColor="@color/zp_text"
-            android:textColorHint="@color/zp_muted" />
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="horizontal">
+
             <EditText
                 android:id="@+id/edtTaskStart"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_input"
+                android:drawableStart="@drawable/ic_clock"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/zp_muted"
                 android:hint="@string/start_hint"
                 android:inputType="time"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:singleLine="true"
                 android:textColor="@color/zp_text"
-                android:textColorHint="@color/zp_muted" />
-            <Space android:layout_width="10dp" android:layout_height="1dp" />
+                android:textColorHint="@color/zp_muted"
+                android:textSize="15sp" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
             <EditText
                 android:id="@+id/edtTaskEnd"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_input"
+                android:drawableStart="@drawable/ic_clock"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/zp_muted"
                 android:hint="@string/end_hint"
                 android:inputType="time"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:singleLine="true"
                 android:textColor="@color/zp_text"
-                android:textColorHint="@color/zp_muted" />
+                android:textColorHint="@color/zp_muted"
+                android:textSize="15sp" />
         </LinearLayout>
+
+        <!-- Section 3: Category Spinners -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/task_section_category"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <Spinner
             android:id="@+id/spinnerPriority"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+
         <Spinner
             android:id="@+id/spinnerStatus"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp" />
+
+        <!-- Custom Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelTask"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:minWidth="88dp"
+                android:text="@string/cancel"
+                android:textAllCaps="false"
+                android:textColor="@color/zp_muted"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSaveTask"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_primary_button"
+                android:minWidth="120dp"
+                android:paddingHorizontal="20dp"
+                android:text="Lưu công việc"
+                android:textAllCaps="false"
+                android:textColor="@color/zp_on_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
