@@ -11,8 +11,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Đăng xuất tài khoản?"
-        android:textColor="#242331"
+        android:text="@string/logout_title"
+        android:textColor="@color/zp_text"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -20,8 +20,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Bạn có chắc muốn đăng xuất khỏi thiết bị này không?"
-        android:textColor="#77758A"
+        android:text="@string/logout_message"
+        android:textColor="@color/zp_muted"
         android:textSize="14sp" />
 
     <LinearLayout
@@ -35,7 +35,7 @@
             android:id="@+id/btnCancelLogout"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:text="Ở lại"
+            android:text="@string/stay"
             android:textAllCaps="false" />
 
         <Button
@@ -43,9 +43,9 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
-            android:backgroundTint="#D9535F"
-            android:text="Đăng xuất"
+            android:backgroundTint="@color/zp_danger"
+            android:text="@string/logout"
             android:textAllCaps="false"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/zp_on_primary" />
     </LinearLayout>
 </LinearLayout>

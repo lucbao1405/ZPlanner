@@ -11,8 +11,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Chỉnh sửa hồ sơ"
-        android:textColor="#242331"
+        android:text="@string/edit_profile_title"
+        android:textColor="@color/zp_text"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -22,18 +22,19 @@
         android:layout_height="52dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/bg_input"
-        android:hint="Họ và tên"
+        android:hint="@string/name_hint"
         android:inputType="textPersonName"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:autofillHints="name" />
 
     <Button
         android:id="@+id/btnChangeAvatar"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="10dp"
-        android:text="Thay ảnh đại diện"
+        android:text="@string/change_avatar"
         android:textAllCaps="false" />
 
     <LinearLayout
@@ -47,7 +48,7 @@
             android:id="@+id/btnCancelProfile"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:text="Hủy"
+            android:text="@string/cancel"
             android:textAllCaps="false" />
 
         <Button
@@ -55,9 +56,9 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
-            android:backgroundTint="#7357D8"
-            android:text="Lưu thay đổi"
+            android:backgroundTint="@color/zp_primary"
+            android:text="@string/save_changes"
             android:textAllCaps="false"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/zp_on_primary" />
     </LinearLayout>
 </LinearLayout>

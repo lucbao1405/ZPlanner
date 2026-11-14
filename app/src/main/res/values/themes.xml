@@ -3,7 +3,7 @@
          does not inherit its own (possibly dark) editor/night mode defaults. -->
     <style name="Theme.ZPlanner" parent="android:style/Theme.Material.Light.NoActionBar">
         <!-- Keep the preview theme API-compatible with the runtime theme. -->
-        <item name="android:fontFamily">sans</item>
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowBackground">@color/zp_background</item>
         <item name="android:colorBackground">@color/zp_background</item>
         <item name="android:textColorPrimary">@color/zp_text</item>
@@ -18,10 +18,12 @@
     <!-- Layout Editor-only theme: explicit light colors prevent a dark editor mode from
          making XML previews appear black. This is never applied at runtime. -->
     <style name="Theme.ZPlanner.Preview" parent="android:style/Theme.Material.Light.NoActionBar">
+        <!-- Explicit light values prevent Android Studio's dark editor mode from tinting the preview black. -->
         <item name="android:windowBackground">@color/zp_background</item>
         <item name="android:colorBackground">@color/zp_background</item>
         <item name="android:textColorPrimary">@color/zp_text</item>
         <item name="android:textColorSecondary">@color/zp_muted</item>
+        <item name="android:textColor">@color/zp_text</item>
         <item name="android:colorAccent">@color/zp_primary</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:statusBarColor">@color/zp_background</item>

@@ -14,9 +14,9 @@
                 <ImageButton android:id="@+id/btnSettings" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:contentDescription="Mở cài đặt" android:src="@android:drawable/ic_menu_preferences" android:tint="@color/zp_primary"/>
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:background="@drawable/bg_hero" android:orientation="vertical" android:elevation="2dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hôm nay của bạn" android:textColor="#EDE8FF" android:textSize="14sp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hôm nay của bạn" android:textColor="@color/zp_hero_text" android:textSize="14sp"/>
                 <TextView android:id="@+id/txtProgress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Hoàn thành 0/0 công việc trong ngày" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold"/>
-                <ProgressBar android:id="@+id/progressDay" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="16dp" android:max="1" android:progressTint="#FFFFFF" android:progressBackgroundTint="#8E78E5"/>
+                <ProgressBar android:id="@+id/progressDay" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="16dp" android:max="1" android:progressTint="@color/zp_on_primary" android:progressBackgroundTint="@color/zp_hero_progress"/>
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="18dp" android:background="@drawable/bg_card" android:gravity="center_vertical">
                 <Button android:id="@+id/btnPreviousDay" android:layout_width="48dp" android:layout_height="48dp" android:background="@android:color/transparent" android:text="‹" android:textColor="@color/zp_primary" android:textSize="28sp" android:contentDescription="Ngày trước"/>

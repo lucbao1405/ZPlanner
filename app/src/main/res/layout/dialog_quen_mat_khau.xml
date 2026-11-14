@@ -11,8 +11,8 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Quên mật khẩu?"
-        android:textColor="#242331"
+        android:text="@string/forgot_password"
+        android:textColor="@color/zp_text"
         android:textSize="20sp"
         android:textStyle="bold" />
 
@@ -20,8 +20,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết đặt lại mật khẩu cho bạn."
-        android:textColor="#77758A"
+        android:text="@string/reset_password_message"
+        android:textColor="@color/zp_muted"
         android:textSize="14sp" />
 
     <EditText
@@ -30,7 +30,8 @@
         android:layout_height="52dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/bg_input"
-        android:hint="you@example.com"
+        android:hint="@string/email_hint"
+        android:autofillHints="emailAddress"
         android:inputType="textEmailAddress"
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
@@ -47,7 +48,7 @@
             android:id="@+id/btnCancelReset"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:text="Hủy"
+            android:text="@string/cancel"
             android:textAllCaps="false" />
 
         <Button
@@ -55,9 +56,9 @@
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
-            android:backgroundTint="#7357D8"
-            android:text="Gửi liên kết"
+            android:backgroundTint="@color/zp_primary"
+            android:text="@string/send_link"
             android:textAllCaps="false"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/zp_on_primary" />
     </LinearLayout>
 </LinearLayout>

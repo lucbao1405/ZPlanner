@@ -4,6 +4,7 @@
     tools:context=".MainActivity"
     tools:theme="@style/Theme.ZPlanner.Preview"
     tools:background="@color/zp_background"
+    tools:showIn="@layout/trangcanhan"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -29,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Cá nhân"
-                android:textColor="#242331"
+                android:textColor="@color/zp_text"
                 android:textSize="28sp"
                 android:textStyle="bold" />
 
@@ -49,7 +50,7 @@
                     android:background="@drawable/bg_avatar"
                     android:gravity="center"
                     android:text="LB"
-                    android:textColor="#6946C6"
+                    android:textColor="@color/zp_profile_primary"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
@@ -65,7 +66,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Lục Bảo"
-                        android:textColor="#242331"
+                        android:textColor="@color/zp_text"
                         android:textSize="19sp"
                         android:textStyle="bold" />
 
@@ -75,7 +76,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text=""
-                        android:textColor="#77758A"
+                        android:textColor="@color/zp_muted"
                         android:textSize="13sp" />
 
                     <TextView
@@ -83,7 +84,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="Chỉnh sửa hồ sơ"
-                        android:textColor="#7357D8"
+                        android:textColor="@color/zp_primary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -94,7 +95,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
                 android:text="Tài khoản"
-                android:textColor="#77758A"
+                android:textColor="@color/zp_muted"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -115,13 +116,13 @@
                     android:paddingEnd="18dp"
                     android:id="@+id/btnEditProfile"
                     android:text="✎   Chỉnh sửa thông tin cá nhân                                      ›"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#F0EFF4" />
+                    android:background="@color/zp_divider" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -130,7 +131,7 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="▣   Quản lý lịch và nhiệm vụ                                      ›"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
             </LinearLayout>
 
@@ -139,7 +140,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
                 android:text="Tùy chỉnh ứng dụng"
-                android:textColor="#77758A"
+                android:textColor="@color/zp_muted"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -158,13 +159,13 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="☾   Giao diện tối                                      Tắt"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#F0EFF4" />
+                    android:background="@color/zp_divider" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -173,13 +174,13 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="◷   Nhắc nhở công việc                                  Bật"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#F0EFF4" />
+                    android:background="@color/zp_divider" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -188,7 +189,7 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="⌁   Ngày bắt đầu tuần                                      Thứ Hai"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
             </LinearLayout>
 
@@ -197,7 +198,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
                 android:text="Hỗ trợ"
-                android:textColor="#77758A"
+                android:textColor="@color/zp_muted"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -216,13 +217,13 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="Trung tâm trợ giúp                                      ›"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#F0EFF4" />
+                    android:background="@color/zp_divider" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -231,7 +232,7 @@
                     android:paddingStart="18dp"
                     android:paddingEnd="18dp"
                     android:text="ⓘ   Về ZPlanner                                      v1.0"
-                    android:textColor="#242331"
+                    android:textColor="@color/zp_text"
                     android:textSize="15sp" />
             </LinearLayout>
 
@@ -244,7 +245,7 @@
                 android:gravity="center"
                 android:clickable="true"
                 android:text="Đăng xuất"
-                android:textColor="#D9535F"
+                android:textColor="@color/zp_danger"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -253,7 +254,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="72dp"
-        android:background="#FFFFFF"
+        android:background="@color/zp_surface"
         android:elevation="8dp"
         android:gravity="center"
         android:orientation="horizontal">
@@ -266,7 +267,7 @@
             android:gravity="center"
             android:clickable="true"
             android:text="⌂\nTrang chủ"
-            android:textColor="#8E8B9D"
+            android:textColor="@color/zp_nav_muted"
             android:textSize="12sp" />
 
         <TextView
@@ -275,7 +276,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="▣\nLịch"
-            android:textColor="#8E8B9D"
+            android:textColor="@color/zp_nav_muted"
             android:textSize="12sp" />
 
         <TextView
@@ -284,7 +285,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="✓\nNhiệm vụ"
-            android:textColor="#8E8B9D"
+            android:textColor="@color/zp_nav_muted"
             android:textSize="12sp" />
 
         <TextView
@@ -293,7 +294,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="●\nCá nhân"
-            android:textColor="#7357D8"
+            android:textColor="@color/zp_primary"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
