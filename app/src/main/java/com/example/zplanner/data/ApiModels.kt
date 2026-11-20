@@ -6,6 +6,12 @@ import kotlinx.serialization.Serializable
 data class Credentials(val email: String, val password: String)
 
 @Serializable
+data class GoogleAuthRequest(val idToken: String, val nonce: String)
+
+@Serializable
+data class GoogleLinkRequest(val idToken: String, val nonce: String)
+
+@Serializable
 data class AuthResponse(
     val accessToken: String,
     val tokenType: String,

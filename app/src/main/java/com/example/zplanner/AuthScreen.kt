@@ -42,7 +42,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
             OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), label = { Text("Mật khẩu") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp)) }
             Spacer(Modifier.height(18.dp))
-            Button(enabled = !loading && email.isNotBlank() && password.isNotBlank(), onClick = { viewModel.submit(email, password, register) }, modifier = Modifier.fillMaxWidth()) {
+            Button(enabled = !loading && email.isNotBlank() && password.isNotBlank(), onClick = { if (register) viewModel.submitRegister(email, password) else viewModel.submitLogin(email, password) }, modifier = Modifier.fillMaxWidth()) {
                 if (loading) CircularProgressIndicator() else Text(if (register) "Đăng ký" else "Đăng nhập")
             }
             TextButton(onClick = { register = !register }) { Text(if (register) "Đã có tài khoản? Đăng nhập" else "Tạo tài khoản mới") }
