@@ -16,6 +16,12 @@ interface ZPlannerApi {
     @POST("auth/login")
     suspend fun login(@Body credentials: Credentials): Response<AuthResponse>
 
+    @POST("auth/google")
+    suspend fun google(@Body request: GoogleAuthRequest): Response<AuthResponse>
+
+    @POST("auth/google/link")
+    suspend fun linkGoogle(@Body request: GoogleLinkRequest): Response<Unit>
+
     @POST("auth/logout")
     suspend fun logout(): Response<Unit>
 

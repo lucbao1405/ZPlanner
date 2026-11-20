@@ -19,6 +19,20 @@ async function request(path, { method = "GET", token, body } = {}) {
 const health = await request("/health");
 assert.equal(health.response.status, 200);
 
+const malformedGoogle = await request("/auth/google", {
+  method: "POST",
+  body: { idToken: "not-a-jwt", nonce: "smoke-nonce" }
+});
+assert.equal(malformedGoogle.response.status, 401);
+assert.equal(malformedGoogle.result.error.code, "INVALID_GOOGLE_TOKEN");
+
+const unauthenticatedLink = await request("/auth/google/link", {
+  method: "POST",
+  body: { idToken: "not-a-jwt", nonce: "smoke-nonce" }
+});
+assert.equal(unauthenticatedLink.response.status, 401);
+assert.equal(unauthenticatedLink.result.error.code, "UNAUTHORIZED");
+
 const register = await request("/auth/register", {
   method: "POST",
   body: { email: `smoke-${stamp}@example.com`, password: "S3cure-Local-Only" }

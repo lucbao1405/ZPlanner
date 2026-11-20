@@ -5,11 +5,14 @@ const encoder = new TextEncoder();
 interface Env {
   DB: D1Database;
   AUTH_SECRET: string;
+  GOOGLE_WEB_CLIENT_ID: string;
+  GOOGLE_JWKS_URL?: string;
 }
 
 interface UserRow {
   id: string;
   email: string;
+  auth_provider?: string;
   password_hash: string;
   password_salt: string;
   password_iterations: number;
@@ -66,8 +69,10 @@ export default {
 
       if (request.method === "POST" && path === "/auth/register") return await register(request, env);
       if (request.method === "POST" && path === "/auth/login") return await login(request, env);
+      if (request.method === "POST" && path === "/auth/google") return await googleAuth(request, env);
 
       const session = await requireSession(request, env);
+      if (request.method === "POST" && path === "/auth/google/link") return await linkGoogle(request, env, session);
       if (request.method === "GET" && path === "/auth/me") {
         return json({ user: { id: session.userId, email: session.email } });
       }
@@ -132,10 +137,10 @@ async function login(request: Request, env: Env): Promise<Response> {
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
   const user = await env.DB.prepare(
-    "SELECT id, email, password_hash, password_salt, password_iterations FROM users WHERE email = ?"
+    "SELECT id, email, password_hash, password_salt, password_iterations FROM users WHERE email = ? AND auth_provider = 'password'"
   ).bind(email).first<UserRow>();
 
-  if (!user || password.length > 128) throw invalidCredentials();
+  if (!user || password.length > 128 || !user.password_hash || !user.password_salt) throw invalidCredentials();
   const expected = fromBase64Url(user.password_hash);
   const actual = await derivePassword(password, fromBase64Url(user.password_salt), user.password_iterations);
   if (!constantTimeEqual(expected, actual)) throw invalidCredentials();
@@ -144,6 +149,69 @@ async function login(request: Request, env: Env): Promise<Response> {
 
 function invalidCredentials(): HttpError {
   return new HttpError(401, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng.");
+}
+
+interface GoogleClaims { iss?: string; aud?: string | string[]; sub?: string; email?: string; email_verified?: boolean; exp?: number; nonce?: string; }
+interface GoogleJwk { kid?: string; kty?: string; alg?: string; use?: string; n?: string; e?: string; }
+
+async function googleAuth(request: Request, env: Env): Promise<Response> {
+  const body = await readJson(request);
+  const claims = await verifyGoogleIdToken(body.idToken, body.nonce, env);
+  const linked = await env.DB.prepare("SELECT user_id FROM google_identities WHERE google_sub = ?").bind(claims.sub!).first<{ user_id: string }>();
+  if (linked) return createSessionResponse(env, linked.user_id, claims.email!, 200);
+  const existing = await env.DB.prepare("SELECT id, auth_provider FROM users WHERE email = ?").bind(claims.email!).first<{ id: string; auth_provider: string }>();
+  if (existing) throw new HttpError(409, "ACCOUNT_LINK_REQUIRED", "Tài khoản email đã tồn tại. Hãy đăng nhập bằng mật khẩu rồi liên kết Google.");
+  const userId = crypto.randomUUID();
+  const unusablePasswordHash = crypto.getRandomValues(new Uint8Array(32));
+  const unusablePasswordSalt = crypto.getRandomValues(new Uint8Array(16));
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO users (id, email, password_hash, password_salt, password_iterations, auth_provider) VALUES (?, ?, ?, ?, ?, 'google')")
+      .bind(userId, claims.email!, toBase64Url(unusablePasswordHash), toBase64Url(unusablePasswordSalt), PASSWORD_ITERATIONS),
+    env.DB.prepare("INSERT INTO google_identities (google_sub, user_id, email) VALUES (?, ?, ?)").bind(claims.sub!, userId, claims.email!)
+  ]);
+  return createSessionResponse(env, userId, claims.email!, 201);
+}
+
+async function linkGoogle(request: Request, env: Env, session: Session): Promise<Response> {
+  const linkBody = await readJson(request);
+  const claims = await verifyGoogleIdToken(linkBody.idToken, linkBody.nonce, env);
+  const linked = await env.DB.prepare("SELECT user_id FROM google_identities WHERE google_sub = ?").bind(claims.sub!).first<{ user_id: string }>();
+  if (linked && linked.user_id !== session.userId) throw new HttpError(409, "GOOGLE_IDENTITY_ALREADY_LINKED", "Tài khoản Google đã được liên kết với tài khoản khác.");
+  if (!linked) {
+    const account = await env.DB.prepare("SELECT email FROM users WHERE id = ? AND auth_provider = 'password'").bind(session.userId).first<{ email: string }>();
+    if (!account || account.email.toLowerCase() !== claims.email!.toLowerCase()) {
+      throw new HttpError(409, "GOOGLE_EMAIL_MISMATCH", "Email Google phải khớp với tài khoản đang đăng nhập.");
+    }
+    try {
+      await env.DB.prepare("INSERT INTO google_identities (google_sub, user_id, email) VALUES (?, ?, ?)").bind(claims.sub!, session.userId, claims.email!).run();
+    } catch {
+      throw new HttpError(409, "GOOGLE_IDENTITY_ALREADY_LINKED", "Tài khoản Google đã được liên kết với tài khoản khác.");
+    }
+  }
+  return createSessionResponse(env, session.userId, session.email, 200);
+}
+
+async function verifyGoogleIdToken(raw: unknown, expectedNonce: unknown, env: Env): Promise<Required<Pick<GoogleClaims, "sub" | "email" | "exp">>> {
+  if (typeof raw !== "string" || raw.length > 8192) throw new HttpError(401, "INVALID_GOOGLE_TOKEN", "Google token không hợp lệ.");
+  const parts = raw.split(".");
+  if (parts.length !== 3) throw new HttpError(401, "INVALID_GOOGLE_TOKEN", "Google token không hợp lệ.");
+  try {
+    const header = JSON.parse(new TextDecoder().decode(fromBase64Url(parts[0]))) as { kid?: string; alg?: string };
+    const claims = JSON.parse(new TextDecoder().decode(fromBase64Url(parts[1]))) as GoogleClaims;
+    const audienceOk = Array.isArray(claims.aud) ? claims.aud.includes(env.GOOGLE_WEB_CLIENT_ID) : claims.aud === env.GOOGLE_WEB_CLIENT_ID;
+    if (typeof expectedNonce !== "string" || !expectedNonce || claims.nonce !== expectedNonce || header.alg !== "RS256" || (claims.iss !== "https://accounts.google.com" && claims.iss !== "accounts.google.com") || !audienceOk || !claims.sub || !claims.email || claims.email_verified !== true || !claims.exp || claims.exp <= Math.floor(Date.now() / 1000)) throw new HttpError(401, "INVALID_GOOGLE_TOKEN", "Google token không hợp lệ.");
+    const jwksResponse = await fetch(env.GOOGLE_JWKS_URL || "https://www.googleapis.com/oauth2/v3/certs");
+    if (!jwksResponse.ok) throw new Error("jwks");
+    const jwks = await jwksResponse.json() as { keys?: GoogleJwk[] };
+    const jwk = jwks.keys?.find(key => key.kid === header.kid && key.kty === "RSA" && key.alg === "RS256");
+    if (!jwk?.n || !jwk.e) throw new Error("key");
+    const key = await crypto.subtle.importKey("jwk", jwk as JsonWebKey, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+    if (!await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, toArrayBuffer(fromBase64Url(parts[2])), encoder.encode(`${parts[0]}.${parts[1]}`))) throw new Error("signature");
+    return { sub: claims.sub, email: claims.email.trim().toLowerCase(), exp: claims.exp };
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(401, "INVALID_GOOGLE_TOKEN", "Google token không hợp lệ.");
+  }
 }
 
 async function createSessionResponse(env: Env, userId: string, email: string, status: number): Promise<Response> {

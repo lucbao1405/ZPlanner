@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/zp_background" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal">
+        <TextView android:layout_width="76dp" android:layout_height="76dp" android:background="@drawable/bg_avatar"
+            android:gravity="center" android:text="@string/logo_letter" android:textColor="@color/zp_profile_primary"
+            android:textSize="34sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:text="@string/register_title" android:textColor="@color/zp_text" android:textSize="24sp" android:textStyle="bold" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
+            android:background="@drawable/bg_card" android:orientation="vertical" android:padding="20dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/email" android:textColor="@color/zp_text" android:textStyle="bold" />
+            <EditText android:id="@+id/edtRegisterEmail" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp"
+                android:autofillHints="emailAddress" android:background="@drawable/bg_input" android:drawableStart="@drawable/ic_email"
+                android:drawableTint="@color/zp_muted" android:drawablePadding="12dp" android:hint="@string/email_hint"
+                android:inputType="textEmailAddress" android:imeOptions="actionNext" android:paddingStart="14dp" android:paddingEnd="14dp" android:singleLine="true"
+                android:textColor="@color/zp_text" android:textColorHint="@color/zp_muted" />
+            <TextView android:id="@+id/txtRegisterEmailError" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="@color/zp_danger" android:textSize="12sp" android:visibility="gone" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/password" android:textColor="@color/zp_text" android:textStyle="bold" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:orientation="horizontal">
+                <EditText android:id="@+id/edtRegisterPassword" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                    android:autofillHints="password" android:background="@android:color/transparent" android:drawableStart="@drawable/ic_lock" android:drawableTint="@color/zp_muted" android:drawablePadding="12dp"
+                    android:hint="@string/password_hint" android:inputType="textPassword" android:imeOptions="actionNext" android:paddingStart="14dp" android:paddingEnd="14dp" android:singleLine="true" android:textColor="@color/zp_text" />
+                <ImageButton android:id="@+id/btnToggleRegisterPassword" android:layout_width="44dp" android:layout_height="44dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="@string/show_hide_password" android:src="@drawable/ic_visibility" android:tint="@color/zp_primary" />
+            </LinearLayout>
+            <TextView android:id="@+id/txtRegisterPasswordError" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/zp_danger" android:textSize="12sp" android:visibility="gone" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/confirm_password" android:textColor="@color/zp_text" android:textStyle="bold" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="8dp" android:background="@drawable/bg_input" android:orientation="horizontal">
+                <EditText android:id="@+id/edtRegisterConfirmPassword" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                    android:autofillHints="password" android:background="@android:color/transparent" android:drawableStart="@drawable/ic_lock" android:drawableTint="@color/zp_muted" android:drawablePadding="12dp"
+                    android:hint="@string/confirm_password" android:inputType="textPassword" android:imeOptions="actionDone" android:paddingStart="14dp" android:paddingEnd="14dp" android:singleLine="true" android:textColor="@color/zp_text" />
+                <ImageButton android:id="@+id/btnToggleRegisterConfirmPassword" android:layout_width="44dp" android:layout_height="44dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="@string/show_hide_password" android:src="@drawable/ic_visibility" android:tint="@color/zp_primary" />
+            </LinearLayout>
+            <TextView android:id="@+id/txtRegisterConfirmError" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/zp_danger" android:textSize="12sp" android:visibility="gone" />
+            <Button android:id="@+id/btnRegisterSubmit" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="20dp" android:background="@drawable/bg_primary_button" android:text="@string/register" android:textAllCaps="false" android:textColor="@color/zp_on_primary" android:textSize="16sp" />
+            <ProgressBar android:id="@+id/progressRegister" android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center" android:layout_marginTop="12dp" android:indeterminateTint="@color/zp_primary" android:visibility="gone" />
+            <TextView android:id="@+id/btnBackToLogin" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:layout_marginTop="20dp" android:clickable="true" android:focusable="true" android:text="@string/back_to_login" android:textColor="@color/zp_primary" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

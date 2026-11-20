@@ -7,6 +7,10 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
+import android.util.Base64
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
@@ -15,6 +19,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.zplanner.data.ApiTask
 import com.example.zplanner.data.ApiEvent
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import java.security.SecureRandom
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -30,9 +38,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var taskViewModel: TaskViewModel
     private lateinit var eventViewModel: EventViewModel
     private var screen = Screen.LOGIN
-    private var registerMode = false
     private var profileEditorAvatar: ImageView? = null
     private val settings by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+    private val credentialManager by lazy { CredentialManager.create(this) }
     private val avatarPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
         runCatching {
@@ -42,7 +50,8 @@ class MainActivity : ComponentActivity() {
         profileEditorAvatar?.setImageURI(uri)
         Toast.makeText(this, "Đã cập nhật ảnh đại diện.", Toast.LENGTH_SHORT).show()
     }
-    private enum class Screen { LOGIN, HOME, CALENDAR, PROFILE }
+    private var authUiJob: kotlinx.coroutines.Job? = null
+    private enum class Screen { LOGIN, REGISTER, HOME, CALENDAR, PROFILE }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +61,7 @@ class MainActivity : ComponentActivity() {
         eventViewModel = ViewModelProvider(this)[EventViewModel::class.java]
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { auth.signedIn.collect { signedIn -> if (signedIn && screen == Screen.LOGIN) showHome() else if (!signedIn && screen != Screen.LOGIN) showLogin() } }
+                launch { auth.signedIn.collect { signedIn -> if (signedIn && (screen == Screen.LOGIN || screen == Screen.REGISTER)) showHome() else if (!signedIn && screen != Screen.LOGIN && screen != Screen.REGISTER) showLogin() } }
                 launch { taskViewModel.sessionExpired.collect { expired -> if (expired) { taskViewModel.clearSessionExpiry(); auth.signOut() } } }
                 launch { taskViewModel.tasks.collect { renderTasks(it); renderCalendar(it) } }
                 launch { eventViewModel.events.collect { renderCalendar(taskViewModel.tasks.value) } }
@@ -74,7 +83,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() {
-        when (screen) { Screen.LOGIN -> super.onBackPressed(); Screen.HOME -> super.onBackPressed(); Screen.CALENDAR, Screen.PROFILE -> showHome() }
+        when (screen) {
+            Screen.LOGIN -> super.onBackPressed()
+            Screen.REGISTER -> showLogin()
+            Screen.HOME -> super.onBackPressed()
+            Screen.CALENDAR, Screen.PROFILE -> showHome()
+        }
     }
 
     private fun applyThemeColors() {
@@ -86,31 +100,115 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showLogin() {
-        screen = Screen.LOGIN; setContentView(R.layout.dangnhap)
+        // Stop collectors while they still point at the previous layout. Otherwise a
+        // final emission from the old screen can update views that are no longer shown.
+        authUiJob?.cancel()
+        authUiJob = null
+        auth.error.value = null
+        screen = Screen.LOGIN
+        setContentView(R.layout.dangnhap)
         val email = findViewById<EditText>(R.id.edtEmail); val password = findViewById<EditText>(R.id.edtPassword)
         val login = findViewById<Button>(R.id.btnLogin); val progress = findViewById<ProgressBar>(R.id.progressLogin)
         val error = findViewById<TextView>(R.id.txtPasswordError)
-        findViewById<View>(R.id.btnTogglePassword).setOnClickListener {
-            val hidden = password.inputType and InputType.TYPE_TEXT_VARIATION_PASSWORD != 0
-            password.inputType = InputType.TYPE_CLASS_TEXT or if (hidden) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_TEXT_VARIATION_PASSWORD
-            password.setSelection(password.length())
-        }
-        findViewById<View>(R.id.btnRegister).setOnClickListener { registerMode = !registerMode; login.text = if (registerMode) "Đăng ký" else "Đăng nhập"; (it as TextView).text = if (registerMode) "Đã có tài khoản? Đăng nhập" else "Đăng ký ngay" }
+        findViewById<View>(R.id.btnTogglePassword).setOnClickListener { togglePassword(password) }
+        findViewById<View>(R.id.btnRegister).setOnClickListener { showRegister() }
         findViewById<View>(R.id.btnForgotPassword).setOnClickListener { showForgotPassword() }
-        findViewById<View>(R.id.btnGoogle).setOnClickListener { Toast.makeText(this, "Đăng nhập Google chưa được cấu hình.", Toast.LENGTH_LONG).show() }
+        findViewById<View>(R.id.btnGoogle).setOnClickListener { startGoogleSignIn(link = false) }
+        password.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                login.performClick()
+                true
+            } else false
+        }
         login.setOnClickListener {
             val e = email.text.toString().trim(); val p = password.text.toString()
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(e).matches() || p.isBlank()) { error.text = "Vui lòng nhập email hợp lệ và mật khẩu."; error.visibility = View.VISIBLE; return@setOnClickListener }
-            error.visibility = View.GONE; progress.visibility = View.VISIBLE; login.isEnabled = false
-            auth.submit(e, p, registerMode)
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(e).matches()) { error.text = "Vui lòng nhập email hợp lệ."; error.visibility = View.VISIBLE; return@setOnClickListener }
+            if (p.isBlank()) { error.text = "Vui lòng nhập mật khẩu."; error.visibility = View.VISIBLE; return@setOnClickListener }
+            error.visibility = View.GONE; auth.submitLogin(e, p)
         }
-        // The single activity-level collector updates this screen without creating duplicate collectors.
-        lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { auth.loading.collect { loading -> if (screen == Screen.LOGIN) { progress.visibility = if (loading) View.VISIBLE else View.GONE; login.isEnabled = !loading } } } }
-        lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { auth.error.collect { message -> if (screen == Screen.LOGIN) { error.text = message.orEmpty(); error.visibility = if (message == null) View.GONE else View.VISIBLE } } } }
+        authUiJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { auth.loading.collect { loading -> if (screen == Screen.LOGIN) { progress.visibility = if (loading) View.VISIBLE else View.GONE; login.isEnabled = !loading } } }
+                launch { auth.error.collect { message -> if (screen == Screen.LOGIN) { error.text = message.orEmpty(); error.visibility = if (message == null) View.GONE else View.VISIBLE } } }
+            }
+        }
+    }
+
+    private fun togglePassword(password: EditText) {
+        val visible = password.inputType and InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD != 0
+        password.inputType = InputType.TYPE_CLASS_TEXT or if (visible) InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+        password.setSelection(password.length())
+    }
+
+    private fun showRegister() {
+        // Cancel the login collectors before replacing its views. Register owns its
+        // own collector and therefore receives loading/errors only for this screen.
+        authUiJob?.cancel()
+        authUiJob = null
+        auth.error.value = null
+        screen = Screen.REGISTER
+        setContentView(R.layout.dangky)
+        val email = findViewById<EditText>(R.id.edtRegisterEmail)
+        val password = findViewById<EditText>(R.id.edtRegisterPassword)
+        val confirm = findViewById<EditText>(R.id.edtRegisterConfirmPassword)
+        val submit = findViewById<Button>(R.id.btnRegisterSubmit)
+        val progress = findViewById<ProgressBar>(R.id.progressRegister)
+        val emailError = findViewById<TextView>(R.id.txtRegisterEmailError)
+        val passwordError = findViewById<TextView>(R.id.txtRegisterPasswordError)
+        val confirmError = findViewById<TextView>(R.id.txtRegisterConfirmError)
+        findViewById<View>(R.id.btnToggleRegisterPassword).setOnClickListener { togglePassword(password) }
+        findViewById<View>(R.id.btnToggleRegisterConfirmPassword).setOnClickListener { togglePassword(confirm) }
+        findViewById<View>(R.id.btnBackToLogin).setOnClickListener { showLogin() }
+        submit.setOnClickListener {
+            emailError.visibility = View.GONE; passwordError.visibility = View.GONE; confirmError.visibility = View.GONE
+            val e = email.text.toString().trim(); val p = password.text.toString(); val c = confirm.text.toString()
+            var valid = true
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(e).matches()) { emailError.text = "Email không hợp lệ."; emailError.visibility = View.VISIBLE; valid = false }
+            if (p.length !in 8..128) { passwordError.text = "Mật khẩu phải dài từ 8 đến 128 ký tự."; passwordError.visibility = View.VISIBLE; valid = false }
+            if (p != c) { confirmError.text = "Mật khẩu nhập lại không trùng khớp."; confirmError.visibility = View.VISIBLE; valid = false }
+            if (valid) auth.submitRegister(e, p)
+        }
+        authUiJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { auth.loading.collect { loading -> progress.visibility = if (loading) View.VISIBLE else View.GONE; submit.isEnabled = !loading } }
+                launch {
+                    auth.error.collect { message ->
+                        emailError.text = message.orEmpty()
+                        emailError.visibility = if (message == null) View.GONE else View.VISIBLE
+                    }
+                }
+            }
+        }
+    }
+
+
+    private fun startGoogleSignIn(link: Boolean) {
+        lifecycleScope.launch {
+            val nonceBytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+            val nonce = Base64.encodeToString(nonceBytes, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING)
+            val option = GetSignInWithGoogleOption.Builder(BuildConfig.GOOGLE_WEB_CLIENT_ID).setNonce(nonce).build()
+            try {
+                val result = credentialManager.getCredential(this@MainActivity, GetCredentialRequest.Builder().addCredentialOption(option).build())
+                val credential = result.credential
+                if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    val google = GoogleIdTokenCredential.createFrom(credential.data)
+                    if (link) auth.linkGoogle(google.idToken, nonce) else auth.googleSignIn(google.idToken, nonce)
+                } else Toast.makeText(this@MainActivity, getString(R.string.google_signin_failed), Toast.LENGTH_LONG).show()
+            } catch (_: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                if (link) auth.cancelPendingGoogleLink()
+                Toast.makeText(this@MainActivity, getString(R.string.google_signin_cancelled), Toast.LENGTH_SHORT).show()
+            } catch (_: GoogleIdTokenParsingException) {
+                Toast.makeText(this@MainActivity, getString(R.string.google_signin_failed), Toast.LENGTH_LONG).show()
+            } catch (_: androidx.credentials.exceptions.GetCredentialException) {
+                Toast.makeText(this@MainActivity, getString(R.string.google_signin_failed), Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun showHome() {
-        screen = Screen.HOME; setContentView(R.layout.trangchu)
+        screen = Screen.HOME
+        authUiJob?.cancel()
+        setContentView(R.layout.trangchu)
         findViewById<View>(R.id.btnPreviousDay).setOnClickListener { taskViewModel.previousDay() }
         findViewById<View>(R.id.btnNextDay).setOnClickListener { taskViewModel.nextDay() }
         findViewById<View>(R.id.btnAddTask).setOnClickListener { showTaskEditor(null) }
@@ -443,6 +541,13 @@ class MainActivity : ComponentActivity() {
         reminders.setOnCheckedChangeListener { _, enabled ->
             settings.edit().putBoolean("reminders", enabled).apply()
         }
+        val linkGoogle = findViewById<View>(R.id.btnLinkGoogleProfile)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                auth.googleLinkRequired.collect { linkGoogle.visibility = if (it) View.VISIBLE else View.GONE }
+            }
+        }
+        linkGoogle.setOnClickListener { startGoogleSignIn(link = true) }
         findViewById<View>(R.id.btnLogoutProfile).setOnClickListener { showLogout() }
         findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
         findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }

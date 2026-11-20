@@ -172,6 +172,22 @@
                     android:textSize="15sp" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/btnLinkGoogleProfile"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_secondary_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/link_google"
+                android:textColor="@color/zp_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <!-- Section 2: Settings -->
             <TextView
                 android:layout_width="wrap_content"
