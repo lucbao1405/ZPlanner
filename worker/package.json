@@ -7,6 +7,7 @@
     "dev": "wrangler dev --ip 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
+    "google-smoke": "node scripts/google-smoke.mjs",
     "db:apply:local": "wrangler d1 migrations apply zplanner --local",
     "deploy": "wrangler deploy"
   },
