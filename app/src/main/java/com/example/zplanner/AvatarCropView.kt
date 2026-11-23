@@ -57,19 +57,21 @@ class AvatarCropView(context: Context, attrs: AttributeSet) : View(context, attr
 
     fun renderAvatar(): Bitmap {
         val result = Bitmap.createBitmap(384, 384, Bitmap.Config.ARGB_8888)
-        drawCrop(Canvas(result), result.width.toFloat())
+        drawCrop(Canvas(result), result.width.toFloat(), clipCircle = false)
         return result
     }
 
-    private fun drawCrop(canvas: Canvas, size: Float) {
+    private fun drawCrop(canvas: Canvas, size: Float, clipCircle: Boolean = true) {
         val scale = size / cropSize
         val left = size / 2f - centerX * scale
         val top = size / 2f - centerY * scale
         imageBounds.set(left, top, left + bitmap.width * scale, top + bitmap.height * scale)
-        circle.rewind()
-        circle.addCircle(size / 2f, size / 2f, size / 2f, Path.Direction.CW)
         val state = canvas.save()
-        canvas.clipPath(circle)
+        if (clipCircle) {
+            circle.rewind()
+            circle.addCircle(size / 2f, size / 2f, size / 2f, Path.Direction.CW)
+            canvas.clipPath(circle)
+        }
         canvas.drawBitmap(bitmap, null, imageBounds, paint)
         canvas.restoreToCount(state)
     }
