@@ -252,9 +252,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun togglePassword(password: EditText) {
-        val visible = password.inputType and InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD != 0
-        password.inputType = InputType.TYPE_CLASS_TEXT or if (visible) InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-        password.setSelection(password.length())
+        val visible = password.transformationMethod !is android.text.method.HideReturnsTransformationMethod
+        val selection = password.selectionStart.coerceIn(0, password.length())
+        password.transformationMethod = if (visible) {
+            android.text.method.HideReturnsTransformationMethod.getInstance()
+        } else {
+            android.text.method.PasswordTransformationMethod.getInstance()
+        }
+        password.setSelection(selection)
     }
 
     private fun showRegister() {
