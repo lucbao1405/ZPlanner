@@ -32,6 +32,15 @@ data class AuthResponse(
 data class User(val id: String, val email: String)
 
 @Serializable
+data class UserProfile(val displayName: String? = null, val avatarBase64: String? = null)
+
+@Serializable
+data class ProfileResponse(val profile: UserProfile)
+
+@Serializable
+data class ProfilePatch(val displayName: String? = null, val avatarBase64: String? = null)
+
+@Serializable
 data class ApiTask(
     val id: Long = 0,
     val title: String,

@@ -31,6 +31,8 @@ Local Wrangler D1 data is separate from Cloudflare production data. Do not use `
 | POST | `/auth/password-reset/confirm` | No | Verify `{ "email", "code", "newPassword" }` and revoke old sessions |
 | GET | `/auth/me` | Yes | Current user |
 | POST | `/auth/logout` | Yes | Revoke current session |
+| GET | `/profile` | Yes | Read the current user's display name and avatar |
+| PATCH | `/profile` | Yes | Update `displayName` (up to 80 characters) and/or `avatarBase64` (small JPEG) |
 | GET | `/tasks?date=YYYY-MM-DD` | Yes | List tasks for one local calendar date |
 | GET | `/tasks?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&status=todo` | Yes | Filter by inclusive date range and optional status |
 | POST | `/tasks` | Yes | Create task |

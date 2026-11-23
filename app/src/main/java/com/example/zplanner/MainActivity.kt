@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Build
@@ -28,11 +29,14 @@ import com.example.zplanner.data.ApiEvent
 import com.example.zplanner.data.ZPlannerApi
 import com.example.zplanner.data.ResetCodeRequest
 import com.example.zplanner.data.ResetPasswordRequest
+import com.example.zplanner.data.ProfilePatch
+import com.example.zplanner.data.UserProfile
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import java.security.SecureRandom
 import java.io.File
+import java.io.ByteArrayOutputStream
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
     private var notificationPermissionRequested = false
     private var screen = Screen.LOGIN
     private var profileEditorAvatar: ImageView? = null
+    private var profileRevision = 0L
     private val settings by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
     private val credentialManager by lazy { CredentialManager.create(this) }
     private val avatarPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -766,6 +771,92 @@ class MainActivity : ComponentActivity() {
         findViewById<View>(R.id.btnEditProfile).setOnClickListener { showProfileEditor() }
         findViewById<View>(R.id.btnHelp).setOnClickListener { showInfoDialog("Trung tâm trợ giúp", "Bạn có thể quản lý lịch, nhiệm vụ và cài đặt trong ứng dụng.") }
         findViewById<View>(R.id.btnAbout).setOnClickListener { showInfoDialog("Về ZPlanner", "ZPlanner v1.0\nỨng dụng lập kế hoạch cá nhân.") }
+        loadProfileFromCloud(email)
+    }
+
+    private fun loadProfileFromCloud(email: String) {
+        val session = tokenStore.read() ?: return
+        val revision = ++profileRevision
+        lifecycleScope.launch {
+            val fetched = runCatching { api.profile() }.getOrNull()
+            if (fetched?.isSuccessful != true || authEmail() != email || tokenStore.read() != session || revision != profileRevision) return@launch
+            var profile = fetched.body()?.profile ?: return@launch
+            val localName = tokenStore.readProfileName(email)
+            val localUri = tokenStore.readProfileAvatarUri(email)?.takeIf { it.isNotBlank() }
+            val migrateName = profile.displayName == null && !localName.isNullOrBlank()
+            val migrateAvatar = profile.avatarBase64 == null && localUri != null
+            if (migrateName || migrateAvatar) {
+                val localAvatar = if (migrateAvatar) withContext(Dispatchers.IO) {
+                    runCatching {
+                        val bitmap = loadAvatarBitmap(contentResolver, Uri.parse(localUri))
+                            ?: error("Unreadable avatar")
+                        try { encodeProfileAvatar(bitmap) } finally { bitmap.recycle() }
+                    }.getOrNull()
+                } else null
+                if (!migrateName && localAvatar == null) return@launch
+                val patched = runCatching {
+                    api.updateProfile(ProfilePatch(
+                        displayName = localName.takeIf { migrateName },
+                        avatarBase64 = localAvatar
+                    ))
+                }.getOrNull()
+                if (patched?.isSuccessful != true) return@launch
+                profile = patched.body()?.profile ?: return@launch
+            }
+            if (authEmail() != email || tokenStore.read() != session || revision != profileRevision) return@launch
+            applyCloudProfile(email, profile)
+        }
+    }
+
+    private suspend fun applyCloudProfile(email: String, profile: UserProfile) {
+        tokenStore.saveProfileName(email, profile.displayName)
+        val avatarUri = profile.avatarBase64?.let { encoded ->
+            withContext(Dispatchers.IO) {
+                runCatching { saveProfileAvatarFile(email, Base64.decode(encoded, Base64.DEFAULT)) }.getOrNull()
+            }
+        }
+        if (avatarUri != null) tokenStore.saveProfileAvatarUri(email, avatarUri.toString())
+        if (screen != Screen.PROFILE || authEmail() != email) return
+        findViewById<TextView>(R.id.txtProfileName)?.text = profile.displayName ?: email
+        findViewById<TextView>(R.id.txtProfileEmail)?.apply {
+            text = email
+            visibility = if (profile.displayName == null) View.GONE else View.VISIBLE
+        }
+        if (avatarUri != null) findViewById<ImageView>(R.id.imgProfileAvatar)?.apply {
+            setImageDrawable(null)
+            setImageURI(avatarUri)
+        }
+    }
+
+    private fun encodeProfileAvatar(bitmap: Bitmap): String {
+        val scaled = Bitmap.createScaledBitmap(bitmap, 256, 256, true)
+        try {
+            for (quality in listOf(75, 60, 45, 30)) {
+                val output = ByteArrayOutputStream()
+                if (scaled.compress(Bitmap.CompressFormat.JPEG, quality, output) && output.size() <= 39_000) {
+                    return Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
+                }
+            }
+            throw IllegalArgumentException("Avatar is too large")
+        } finally {
+            if (scaled !== bitmap) scaled.recycle()
+        }
+    }
+
+    private fun saveProfileAvatarFile(email: String, bytes: ByteArray): Uri {
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        check(decoded != null)
+        decoded.recycle()
+        val avatar = AtomicFile(File(filesDir, "profile-avatar-${tokenStore.profileKey(email)}.jpg"))
+        val stream = avatar.startWrite()
+        try {
+            stream.write(bytes)
+            avatar.finishWrite(stream)
+        } catch (error: Exception) {
+            avatar.failWrite(stream)
+            throw error
+        }
+        return Uri.fromFile(avatar.baseFile)
     }
 
     private fun showForgotPassword() {
@@ -838,19 +929,34 @@ class MainActivity : ComponentActivity() {
         profileEditorAvatar = v.findViewById<ImageView>(R.id.imgProfileAvatarPreview).apply { clipToOutline = true }
         val email = authEmail()
         name.setText(tokenStore.readProfileName(email) ?: email)
-        tokenStore.readProfileAvatarUri(email)?.let { profileEditorAvatar?.setImageURI(Uri.parse(it)) } ?: profileEditorAvatar?.setImageResource(R.drawable.ic_avatar_default)
+        tokenStore.readProfileAvatarUri(email)?.takeIf { it.isNotBlank() }?.let { profileEditorAvatar?.setImageURI(Uri.parse(it)) }
+            ?: profileEditorAvatar?.setImageResource(R.drawable.ic_avatar_default)
         val dialog = createCustomDialog(v)
         v.findViewById<View>(R.id.btnChangeAvatar).setOnClickListener {
             avatarPicker.launch(arrayOf("image/*"))
         }
         v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { profileEditorAvatar = null; dialog.dismiss() }
-        v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener {
+        val save = v.findViewById<Button>(R.id.btnSaveProfile)
+        save.setOnClickListener {
             val enteredName = name.text.toString().trim()
-            val email = authEmail()
-            tokenStore.saveProfileName(email, enteredName.takeUnless { it.isBlank() || it == email })
-            profileEditorAvatar = null
-            dialog.dismiss()
-            showProfile()
+            if (enteredName.length > 80) { name.error = "Tên tối đa 80 ký tự"; return@setOnClickListener }
+            val currentEmail = authEmail()
+            val session = tokenStore.read()
+            profileRevision++
+            save.isEnabled = false
+            lifecycleScope.launch {
+                val result = runCatching { api.updateProfile(ProfilePatch(displayName = enteredName.takeUnless { it == currentEmail } ?: "")) }.getOrNull()
+                if (authEmail() != currentEmail || tokenStore.read() != session) return@launch
+                if (result?.isSuccessful == true) {
+                    tokenStore.saveProfileName(currentEmail, result.body()?.profile?.displayName)
+                    profileEditorAvatar = null
+                    dialog.dismiss()
+                    showProfile()
+                } else {
+                    Toast.makeText(this@MainActivity, "Không thể lưu tên lên cloud. Vui lòng thử lại.", Toast.LENGTH_LONG).show()
+                    if (dialog.isShowing) save.isEnabled = true
+                }
+            }
         }
         dialog.setOnDismissListener { profileEditorAvatar = null }
         dialog.show()
@@ -875,28 +981,43 @@ class MainActivity : ComponentActivity() {
             .setPositiveButton(R.string.avatar_save, null)
             .show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val avatar = AtomicFile(File(filesDir, "profile-avatar-${tokenStore.profileKey(authEmail())}.png"))
-            val saved = runCatching {
-                val stream = avatar.startWrite()
-                try {
-                    check(crop.renderAvatar().compress(Bitmap.CompressFormat.PNG, 100, stream))
-                    avatar.finishWrite(stream)
-                } catch (error: Exception) {
-                    avatar.failWrite(stream)
-                    throw error
+            val currentEmail = authEmail()
+            val session = tokenStore.read()
+            profileRevision++
+            val save = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            save.isEnabled = false
+            lifecycleScope.launch {
+                val rendered = crop.renderAvatar()
+                val encoded = withContext(Dispatchers.IO) {
+                    try { runCatching { encodeProfileAvatar(rendered) }.getOrNull() }
+                    finally { rendered.recycle() }
                 }
+                if (encoded == null) {
+                    Toast.makeText(this@MainActivity, R.string.avatar_save_error, Toast.LENGTH_SHORT).show()
+                    save.isEnabled = true
+                    return@launch
+                }
+                val response = runCatching { api.updateProfile(ProfilePatch(avatarBase64 = encoded)) }.getOrNull()
+                if (authEmail() != currentEmail || tokenStore.read() != session) return@launch
+                if (response?.isSuccessful != true) {
+                    Toast.makeText(this@MainActivity, "Không thể lưu ảnh lên cloud. Vui lòng thử lại.", Toast.LENGTH_LONG).show()
+                    save.isEnabled = true
+                    return@launch
+                }
+                val uri = withContext(Dispatchers.IO) {
+                    runCatching { saveProfileAvatarFile(currentEmail, Base64.decode(encoded, Base64.DEFAULT)) }.getOrNull()
+                }
+                if (uri != null) {
+                    tokenStore.saveProfileAvatarUri(currentEmail, uri.toString())
+                    listOfNotNull(profileEditorAvatar, findViewById<ImageView>(R.id.imgProfileAvatar)).forEach { image ->
+                        image.setImageDrawable(null)
+                        image.setImageURI(uri)
+                    }
+                } else {
+                    Toast.makeText(this@MainActivity, "Ảnh đã lưu trên cloud; sẽ tải lại khi mở hồ sơ.", Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
             }
-            if (saved.isFailure) {
-                Toast.makeText(this, R.string.avatar_save_error, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val uri = Uri.fromFile(avatar.baseFile)
-            tokenStore.saveProfileAvatarUri(authEmail(), uri.toString())
-            listOfNotNull(profileEditorAvatar, findViewById<ImageView>(R.id.imgProfileAvatar)).forEach { image ->
-                image.setImageDrawable(null)
-                image.setImageURI(uri)
-            }
-            dialog.dismiss()
         }
     }
 

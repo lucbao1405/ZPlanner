@@ -47,6 +47,24 @@ const registerB = await request("/auth/register", {
 assert.equal(registerB.response.status, 201, JSON.stringify(registerB.result));
 const tokenB = registerB.result.accessToken;
 
+assert.equal((await request("/profile")).response.status, 401);
+
+const emptyProfile = await request("/profile", { token: tokenA });
+assert.equal(emptyProfile.response.status, 200);
+assert.deepEqual(emptyProfile.result.profile, { displayName: null, avatarBase64: null });
+const avatar = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64");
+const savedProfile = await request("/profile", { method: "PATCH", token: tokenA, body: { displayName: "Minh An", avatarBase64: avatar } });
+assert.equal(savedProfile.response.status, 200);
+assert.deepEqual(savedProfile.result.profile, { displayName: "Minh An", avatarBase64: avatar });
+const otherProfile = await request("/profile", { token: tokenB });
+assert.deepEqual(otherProfile.result.profile, { displayName: null, avatarBase64: null }, "Profiles must be isolated by account");
+const renamedProfile = await request("/profile", { method: "PATCH", token: tokenA, body: { displayName: "Tên mới" } });
+assert.equal(renamedProfile.result.profile.avatarBase64, avatar, "Renaming must not erase the avatar");
+const invalidAvatar = await request("/profile", { method: "PATCH", token: tokenA, body: { avatarBase64: "not-an-image" } });
+assert.equal(invalidAvatar.response.status, 400);
+assert.equal((await request("/profile", { method: "PATCH", token: tokenA, body: { displayName: "X".repeat(81) } })).response.status, 400);
+assert.equal((await request("/profile", { token: tokenA })).result.profile.displayName, "Tên mới");
+
 const created = await request("/tasks", {
   method: "POST",
   token: tokenA,
@@ -170,5 +188,6 @@ const loggedOut = await request("/auth/logout", { method: "POST", token: tokenA 
 assert.equal(loggedOut.response.status, 204);
 const afterLogout = await request("/auth/me", { token: tokenA });
 assert.equal(afterLogout.response.status, 401);
+assert.equal((await request("/profile", { token: tokenA })).response.status, 401);
 
-console.log("Worker smoke passed: health, register, owner isolation, CRUD, validation, logout.");
+console.log("Worker smoke passed: health, register, owner isolation, profile sync, CRUD, validation, logout.");

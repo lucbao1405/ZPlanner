@@ -130,6 +130,8 @@ class EventViewModelOverlapTest {
         override suspend fun google(request: GoogleAuthRequest): Response<AuthResponse> = unused()
         override suspend fun linkGoogle(request: GoogleLinkRequest): Response<Unit> = unused()
         override suspend fun logout(authorization: String) = Response.success(Unit)
+        override suspend fun profile(): Response<ProfileResponse> = unused()
+        override suspend fun updateProfile(profile: ProfilePatch): Response<ProfileResponse> = unused()
         override suspend fun tasks(date: String): Response<TasksResponse> = unused()
         override suspend fun reminderTasks(startDate: String, endDate: String): Response<TasksResponse> = unused()
         override suspend fun create(task: ApiTask): Response<TaskResponse> = unused()
