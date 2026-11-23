@@ -24,13 +24,13 @@
             android:src="@drawable/ic_arrow_back"
             android:padding="10dp"
             android:tint="@color/zp_primary"
-            android:contentDescription="Quay lại" />
+            android:contentDescription="@string/back_description" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Lịch tuần"
+            android:text="@string/calendar"
             android:textColor="@color/zp_text"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -72,7 +72,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="T2\n19"
+                tools:text="T2\n19"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -83,7 +83,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_selected"
-                android:text="T3\n20"
+                tools:text="T3\n20"
                 android:textColor="@color/zp_on_primary"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -95,7 +95,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="T4\n21"
+                tools:text="T4\n21"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -106,7 +106,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="T5\n22"
+                tools:text="T5\n22"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -117,7 +117,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="T6\n23"
+                tools:text="T6\n23"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -128,7 +128,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="T7\n24"
+                tools:text="T7\n24"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -138,7 +138,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:background="@drawable/bg_day_chip_normal"
-                android:text="CN\n25"
+                tools:text="CN\n25"
                 android:textColor="@color/zp_text"
                 android:textSize="12sp"
                 tools:ignore="ButtonStyle" />
@@ -184,7 +184,7 @@
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/navTasks"
+            android:id="@+id/navHome"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"

@@ -5,6 +5,7 @@
     <color name="zp_surface">#FFFFFF</color>
     <color name="zp_surface_alt">#F0EDFF</color>
     <color name="zp_primary">#6C4ED9</color>
+    <color name="zp_primary_fill">#6C4ED9</color>
     <color name="zp_primary_dark">#4E35A8</color>
     <color name="zp_primary_light">#8E74EB</color>
     <color name="zp_text">#211D35</color>

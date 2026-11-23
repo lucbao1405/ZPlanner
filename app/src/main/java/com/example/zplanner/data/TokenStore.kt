@@ -6,6 +6,7 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
+import java.security.MessageDigest
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
@@ -17,11 +18,31 @@ class TokenStore(context: Context) {
     fun read(): String? = preferences.getString("token", null)?.let(::decrypt)
     fun readEmail(): String = preferences.getString("email", "").orEmpty()
 
+    fun profileKey(email: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(email.trim().lowercase().toByteArray(StandardCharsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+
+    fun readProfileName(email: String): String? = preferences.getString("profile_name_${profileKey(email)}", null)
+
+    fun saveProfileName(email: String, name: String?) {
+        val key = "profile_name_${profileKey(email)}"
+        preferences.edit().apply {
+            if (name == null) remove(key) else putString(key, name)
+        }.apply()
+    }
+
+    fun readProfileAvatarUri(email: String): String? = preferences.getString("profile_avatar_${profileKey(email)}", null)
+
+    fun saveProfileAvatarUri(email: String, uri: String) {
+        preferences.edit().putString("profile_avatar_${profileKey(email)}", uri).apply()
+    }
+
     fun save(token: String, email: String = "") {
         preferences.edit().putString("token", encrypt(token)).putString("email", email).apply()
     }
 
     fun clear() {
+        // Keep per-account profiles, but remove the active authenticated session.
         preferences.edit().remove("token").remove("email").apply()
     }
 

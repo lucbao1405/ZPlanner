@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:theme="@style/Theme.ZPlanner.Preview"
     android:layout_width="match_parent"
@@ -26,7 +27,7 @@
                 android:contentDescription="@null"
                 android:padding="12dp"
                 android:src="@drawable/ic_calendar"
-                android:tint="@color/zp_primary" />
+                app:tint="@color/zp_primary" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -38,7 +39,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Chi tiết sự kiện"
+                    android:text="@string/event_details"
                     android:textColor="@color/zp_text"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -47,7 +48,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Thêm cuộc họp, nhắc nhở hoặc sự kiện quan trọng"
+                    android:text="@string/event_subtitle"
                     android:textColor="@color/zp_muted"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -58,7 +59,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Thông tin sự kiện"
+            android:text="@string/event_section_info"
             android:textColor="@color/zp_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -69,7 +70,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
-            android:hint="Tiêu đề sự kiện"
+            android:hint="@string/event_title_hint"
             android:inputType="textCapSentences"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
@@ -85,7 +86,7 @@
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
             android:gravity="top"
-            android:hint="Mô tả sự kiện"
+            android:hint="@string/event_desc_hint"
             android:inputType="textMultiLine|textCapSentences"
             android:padding="14dp"
             android:textColor="@color/zp_text"
@@ -101,7 +102,7 @@
             android:drawableStart="@drawable/ic_location"
             android:drawablePadding="10dp"
             android:drawableTint="@color/zp_muted"
-            android:hint="Địa điểm (ví dụ: Phòng họp A, Zoom...)"
+            android:hint="@string/event_location_hint"
             android:inputType="textCapWords"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
@@ -115,7 +116,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="Thời gian &amp; Nhắc nhở"
+            android:text="@string/event_section_time"
             android:textColor="@color/zp_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -129,7 +130,7 @@
             android:drawableStart="@drawable/ic_calendar"
             android:drawablePadding="10dp"
             android:drawableTint="@color/zp_muted"
-            android:hint="Ngày (yyyy-MM-dd)"
+            android:hint="@string/event_date_hint"
             android:inputType="date"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
@@ -153,7 +154,7 @@
                 android:drawableStart="@drawable/ic_clock"
                 android:drawablePadding="8dp"
                 android:drawableTint="@color/zp_muted"
-                android:hint="Bắt đầu (HH:mm)"
+                android:hint="@string/event_start_hint"
                 android:inputType="time"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
@@ -175,7 +176,7 @@
                 android:drawableStart="@drawable/ic_clock"
                 android:drawablePadding="8dp"
                 android:drawableTint="@color/zp_muted"
-                android:hint="Kết thúc (HH:mm)"
+                android:hint="@string/event_end_hint"
                 android:inputType="time"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
@@ -191,7 +192,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_input"
-            android:hint="Nhắc trước (phút)"
+            android:hint="@string/event_reminder_hint"
             android:inputType="number"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"
@@ -228,7 +229,7 @@
                 android:background="@drawable/bg_primary_button"
                 android:minWidth="120dp"
                 android:paddingHorizontal="20dp"
-                android:text="Lưu sự kiện"
+                android:text="@string/save_event"
                 android:textAllCaps="false"
                 android:textColor="@color/zp_on_primary"
                 android:textSize="14sp"

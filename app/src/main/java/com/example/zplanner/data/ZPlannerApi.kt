@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -16,6 +17,12 @@ interface ZPlannerApi {
     @POST("auth/login")
     suspend fun login(@Body credentials: Credentials): Response<AuthResponse>
 
+    @POST("auth/password-reset/request")
+    suspend fun requestResetCode(@Body request: ResetCodeRequest): Response<ResetMessage>
+
+    @POST("auth/password-reset/confirm")
+    suspend fun confirmPasswordReset(@Body request: ResetPasswordRequest): Response<ResetMessage>
+
     @POST("auth/google")
     suspend fun google(@Body request: GoogleAuthRequest): Response<AuthResponse>
 
@@ -23,10 +30,13 @@ interface ZPlannerApi {
     suspend fun linkGoogle(@Body request: GoogleLinkRequest): Response<Unit>
 
     @POST("auth/logout")
-    suspend fun logout(): Response<Unit>
+    suspend fun logout(@Header("Authorization") authorization: String): Response<Unit>
 
     @GET("tasks")
     suspend fun tasks(@Query("date") date: String): Response<TasksResponse>
+
+    @GET("tasks")
+    suspend fun reminderTasks(@Query("startDate") startDate: String, @Query("endDate") endDate: String): Response<TasksResponse>
 
     @POST("tasks")
     suspend fun create(@Body task: ApiTask): Response<TaskResponse>
@@ -39,6 +49,9 @@ interface ZPlannerApi {
 
     @GET("events")
     suspend fun events(@Query("from") from: String, @Query("to") to: String): Response<EventsResponse>
+
+    @GET("events")
+    suspend fun reminderEvents(): Response<EventsResponse>
 
     @POST("events")
     suspend fun createEvent(@Body event: ApiEventRequest): Response<EventResponse>

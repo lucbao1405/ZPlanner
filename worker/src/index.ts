@@ -5,6 +5,9 @@ const encoder = new TextEncoder();
 interface Env {
   DB: D1Database;
   AUTH_SECRET: string;
+  BREVO_API_KEY?: string;
+  RESET_EMAIL_FROM?: string;
+  BREVO_API_URL?: string;
   GOOGLE_WEB_CLIENT_ID: string;
   GOOGLE_JWKS_URL?: string;
 }
@@ -69,6 +72,8 @@ export default {
 
       if (request.method === "POST" && path === "/auth/register") return await register(request, env);
       if (request.method === "POST" && path === "/auth/login") return await login(request, env);
+      if (request.method === "POST" && path === "/auth/password-reset/request") return await requestPasswordReset(request, env);
+      if (request.method === "POST" && path === "/auth/password-reset/confirm") return await confirmPasswordReset(request, env);
       if (request.method === "POST" && path === "/auth/google") return await googleAuth(request, env);
 
       const session = await requireSession(request, env);
@@ -149,6 +154,73 @@ async function login(request: Request, env: Env): Promise<Response> {
 
 function invalidCredentials(): HttpError {
   return new HttpError(401, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng.");
+}
+
+async function resetCodeHash(env: Env, userId: string, code: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(requireSecret(env)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return toBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(`${userId}:${code}`))));
+}
+
+async function requestPasswordReset(request: Request, env: Env): Promise<Response> {
+  const body = await readJson(request);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) throw new HttpError(400, "INVALID_EMAIL", "Email không hợp lệ.");
+  requireSecret(env);
+  if (!env.BREVO_API_KEY || !env.RESET_EMAIL_FROM) throw new HttpError(503, "EMAIL_NOT_CONFIGURED", "Dịch vụ gửi email chưa được cấu hình.");
+  const accepted = json({ message: "Nếu email thuộc tài khoản mật khẩu, mã đặt lại sẽ được gửi." }, 202);
+  const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_provider = 'password'").bind(email).first<{ id: string }>();
+  if (!user) return accepted;
+  const now = Math.floor(Date.now() / 1000);
+  const previous = await env.DB.prepare("SELECT requested_at FROM password_reset_codes WHERE user_id = ?").bind(user.id).first<{ requested_at: number }>();
+  if (previous && previous.requested_at > now - 60) return accepted;
+  const limit = Math.floor(2 ** 32 / 100_000_000) * 100_000_000;
+  let random: number;
+  do { random = crypto.getRandomValues(new Uint32Array(1))[0]; } while (random >= limit);
+  const code = String(random % 100_000_000).padStart(8, "0");
+  const hash = await resetCodeHash(env, user.id, code);
+  await env.DB.prepare("INSERT INTO password_reset_codes (user_id, code_hash, expires_at, attempts, requested_at) VALUES (?, ?, ?, 0, ?) ON CONFLICT(user_id) DO UPDATE SET code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0, requested_at = excluded.requested_at")
+    .bind(user.id, hash, now + 600, now).run();
+  try {
+    const sent = await fetch(env.BREVO_API_URL || "https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": env.BREVO_API_KEY, "Content-Type": "application/json", "accept": "application/json" },
+      body: JSON.stringify({ sender: { name: "ZPlanner", email: env.RESET_EMAIL_FROM }, to: [{ email }], subject: "Mã đặt lại mật khẩu ZPlanner", textContent: `Mã đặt lại mật khẩu ZPlanner của bạn là ${code}. Mã hết hạn sau 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.` })
+    });
+    if (!sent.ok) throw new Error(`Email provider returned ${sent.status}`);
+  } catch (error) {
+    await env.DB.prepare("DELETE FROM password_reset_codes WHERE user_id = ? AND code_hash = ?").bind(user.id, hash).run();
+    console.error("Password reset email delivery failed", error);
+    throw new HttpError(503, "EMAIL_UNAVAILABLE", "Không thể gửi mã lúc này. Vui lòng thử lại sau.");
+  }
+  return accepted;
+}
+
+async function confirmPasswordReset(request: Request, env: Env): Promise<Response> {
+  const body = await readJson(request);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const code = typeof body.code === "string" ? body.code : "";
+  const password = typeof body.newPassword === "string" ? body.newPassword : "";
+  if (password.length < 8 || password.length > 128) throw new HttpError(400, "INVALID_PASSWORD", "Mật khẩu cần có từ 8 đến 128 ký tự.");
+  if (!/^\d{8}$/.test(code)) throw new HttpError(400, "INVALID_RESET_CODE", "Mã đặt lại không hợp lệ hoặc đã hết hạn.");
+  const user = await env.DB.prepare("SELECT id FROM users WHERE email = ? AND auth_provider = 'password'").bind(email).first<{ id: string }>();
+  if (!user) throw new HttpError(400, "INVALID_RESET_CODE", "Mã đặt lại không hợp lệ hoặc đã hết hạn.");
+  const now = Math.floor(Date.now() / 1000);
+  const row = await env.DB.prepare("SELECT code_hash, expires_at, attempts FROM password_reset_codes WHERE user_id = ?").bind(user.id).first<{ code_hash: string; expires_at: number; attempts: number }>();
+  if (!row || row.expires_at <= now || row.attempts >= 5) throw new HttpError(400, "INVALID_RESET_CODE", "Mã đặt lại không hợp lệ hoặc đã hết hạn.");
+  const hash = await resetCodeHash(env, user.id, code);
+  if (!constantTimeEqual(fromBase64Url(row.code_hash), fromBase64Url(hash))) {
+    await env.DB.prepare("UPDATE password_reset_codes SET attempts = attempts + 1 WHERE user_id = ? AND attempts < 5").bind(user.id).run();
+    throw new HttpError(400, "INVALID_RESET_CODE", "Mã đặt lại không hợp lệ hoặc đã hết hạn.");
+  }
+  const claimed = await env.DB.prepare("DELETE FROM password_reset_codes WHERE user_id = ? AND code_hash = ? AND expires_at > ? AND attempts < 5").bind(user.id, hash, now).run();
+  if (!claimed.meta.changes) throw new HttpError(400, "INVALID_RESET_CODE", "Mã đặt lại không hợp lệ hoặc đã hết hạn.");
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const passwordHash = await derivePassword(password, salt, PASSWORD_ITERATIONS);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE users SET password_hash = ?, password_salt = ?, password_iterations = ? WHERE id = ?").bind(toBase64Url(passwordHash), toBase64Url(salt), PASSWORD_ITERATIONS, user.id),
+    env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL").bind(now, user.id)
+  ]);
+  return json({ message: "Đã đổi mật khẩu. Vui lòng đăng nhập lại." });
 }
 
 interface GoogleClaims { iss?: string; aud?: string | string[]; sub?: string; email?: string; email_verified?: boolean; exp?: number; nonce?: string; }

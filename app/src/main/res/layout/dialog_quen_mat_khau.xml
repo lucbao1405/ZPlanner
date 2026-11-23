@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:theme="@style/Theme.ZPlanner.Preview"
     android:layout_width="match_parent"
@@ -20,7 +21,7 @@
             android:contentDescription="@null"
             android:padding="8dp"
             android:src="@drawable/ic_help"
-            android:tint="@color/zp_primary" />
+            app:tint="@color/zp_primary" />
 
         <TextView
             android:layout_width="0dp"
