@@ -53,7 +53,7 @@ class HttpError extends Error {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
   "Access-Control-Max-Age": "86400"
 };
@@ -78,6 +78,8 @@ export default {
 
       const session = await requireSession(request, env);
       if (request.method === "POST" && path === "/auth/google/link") return await linkGoogle(request, env, session);
+      if (request.method === "GET" && path === "/profile") return await getProfile(env, session.userId);
+      if (request.method === "PATCH" && path === "/profile") return await updateProfile(request, env, session.userId);
       if (request.method === "GET" && path === "/auth/me") {
         return json({ user: { id: session.userId, email: session.email } });
       }
@@ -154,6 +156,46 @@ async function login(request: Request, env: Env): Promise<Response> {
 
 function invalidCredentials(): HttpError {
   return new HttpError(401, "INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng.");
+}
+
+async function getProfile(env: Env, userId: string): Promise<Response> {
+  const row = await env.DB.prepare("SELECT display_name, avatar_base64 FROM user_profiles WHERE user_id = ?")
+    .bind(userId).first<{ display_name: string | null; avatar_base64: string | null }>();
+  return json({ profile: { displayName: row?.display_name ?? null, avatarBase64: row?.avatar_base64 ?? null } });
+}
+
+async function updateProfile(request: Request, env: Env, userId: string): Promise<Response> {
+  const body = await readJson(request);
+  const hasName = Object.hasOwn(body, "displayName");
+  const hasAvatar = Object.hasOwn(body, "avatarBase64");
+  if (!hasName && !hasAvatar) throw new HttpError(400, "INVALID_PROFILE", "Không có thông tin hồ sơ để lưu.");
+  let name: string | null = null;
+  let avatar: string | null = null;
+  if (hasName) {
+    if (typeof body.displayName !== "string") throw new HttpError(400, "INVALID_NAME", "Tên không hợp lệ.");
+    name = body.displayName.trim() || null;
+    if (name && name.length > 80) throw new HttpError(400, "INVALID_NAME", "Tên tối đa 80 ký tự.");
+  }
+  if (hasAvatar) {
+    if (typeof body.avatarBase64 !== "string" || body.avatarBase64.length > 52_000 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(body.avatarBase64)) {
+      throw new HttpError(400, "INVALID_AVATAR", "Ảnh đại diện không hợp lệ hoặc quá lớn.");
+    }
+    try {
+      const bytes = atob(body.avatarBase64);
+      if (bytes.length > 39_000 || bytes.length < 4 || bytes.charCodeAt(0) !== 0xff ||
+          bytes.charCodeAt(1) !== 0xd8 || bytes.charCodeAt(2) !== 0xff) throw new Error("Invalid JPEG");
+      avatar = body.avatarBase64;
+    } catch {
+      throw new HttpError(400, "INVALID_AVATAR", "Ảnh đại diện phải là JPEG hợp lệ, tối đa 39 KB.");
+    }
+  }
+  await env.DB.prepare(`INSERT INTO user_profiles (user_id, display_name, avatar_base64) VALUES (?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      display_name = CASE WHEN ? THEN excluded.display_name ELSE user_profiles.display_name END,
+      avatar_base64 = CASE WHEN ? THEN excluded.avatar_base64 ELSE user_profiles.avatar_base64 END`)
+    .bind(userId, name, avatar, hasName ? 1 : 0, hasAvatar ? 1 : 0).run();
+  return getProfile(env, userId);
 }
 
 async function resetCodeHash(env: Env, userId: string, code: string): Promise<string> {
