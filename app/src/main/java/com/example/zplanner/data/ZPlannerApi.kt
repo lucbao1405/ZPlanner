@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -31,6 +32,12 @@ interface ZPlannerApi {
 
     @POST("auth/logout")
     suspend fun logout(@Header("Authorization") authorization: String): Response<Unit>
+
+    @GET("profile")
+    suspend fun profile(): Response<ProfileResponse>
+
+    @PATCH("profile")
+    suspend fun updateProfile(@Body profile: ProfilePatch): Response<ProfileResponse>
 
     @GET("tasks")
     suspend fun tasks(@Query("date") date: String): Response<TasksResponse>
