@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="zp_background">#121018</color>
+    <color name="zp_surface">#211B2E</color>
+    <color name="zp_surface_alt">#302645</color>
+    <color name="zp_primary">#B8A4FF</color>
+    <color name="zp_text">#F3EFFA</color>
+    <color name="zp_muted">#BDB4CF</color>
+    <color name="zp_border">#645877</color>
+    <color name="zp_danger">#FF9A9E</color>
+    <color name="zp_danger_bg">#46252F</color>
+    <color name="zp_disabled">#554A6A</color>
+    <color name="zp_subtle">#A69BB7</color>
+    <color name="zp_divider">#393045</color>
+    <color name="zp_nav_muted">#B2A7C4</color>
+    <color name="zp_profile_primary">@color/zp_primary</color>
+    <color name="zp_hero_start">#4E35A8</color>
+    <color name="zp_hero_end">#6346BF</color>
+
+    <color name="zp_priority_high_bg">#46252F</color>
+    <color name="zp_priority_high_text">#FF9A9E</color>
+    <color name="zp_priority_medium_bg">#47351D</color>
+    <color name="zp_priority_medium_text">#FFD38A</color>
+    <color name="zp_priority_low_bg">#2D2D51</color>
+    <color name="zp_priority_low_text">#BBBEFF</color>
+
+    <color name="zp_status_todo_bg">#393447</color>
+    <color name="zp_status_todo_text">#E0D9EA</color>
+    <color name="zp_status_in_progress_bg">#392852</color>
+    <color name="zp_status_in_progress_text">#D9BAFF</color>
+    <color name="zp_status_done_bg">#1D3C32</color>
+    <color name="zp_status_done_text">#92E6BA</color>
+
+    <color name="zp_secondary_bg">#302645</color>
+    <color name="zp_secondary_border">#645877</color>
+    <color name="zp_event_bg">#223650</color>
+    <color name="zp_event_text">#A9CFFF</color>
+</resources>

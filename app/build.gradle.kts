@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,19 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     kotlin("kapt")
 }
+
+val apiBaseUrl = providers.gradleProperty("API_BASE_URL")
+    .orElse("https://zplanner-api.lucbao045.workers.dev/")
+    .get()
+    .trim()
+val apiUri = URI(apiBaseUrl)
+require(
+    apiUri.scheme in listOf("http", "https") && apiUri.host != null &&
+        apiUri.userInfo == null && apiUri.query == null && apiUri.fragment == null
+) {
+    "API_BASE_URL must be an absolute HTTP(S) URL without credentials, a query, or a fragment."
+}
+val retrofitBaseUrl = apiUri.toASCIIString().removeSuffix("/") + "/"
 
 android {
     namespace = "com.example.zplanner"
@@ -17,6 +32,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "API_BASE_URL", "\"$retrofitBaseUrl\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"504994159658-kelr3bllvp67caivm5afqg0gam8vu5vl.apps.googleusercontent.com\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -88,6 +104,8 @@ dependencies {
 
     // Tests
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.15.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

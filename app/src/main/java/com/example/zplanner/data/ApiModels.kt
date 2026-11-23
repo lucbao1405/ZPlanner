@@ -6,6 +6,15 @@ import kotlinx.serialization.Serializable
 data class Credentials(val email: String, val password: String)
 
 @Serializable
+data class ResetCodeRequest(val email: String)
+
+@Serializable
+data class ResetPasswordRequest(val email: String, val code: String, val newPassword: String)
+
+@Serializable
+data class ResetMessage(val message: String)
+
+@Serializable
 data class GoogleAuthRequest(val idToken: String, val nonce: String)
 
 @Serializable

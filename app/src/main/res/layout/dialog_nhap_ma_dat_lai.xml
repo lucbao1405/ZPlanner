@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Nhập mã đặt lại mật khẩu"
+        android:textColor="@color/zp_text"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Nếu email có tài khoản mật khẩu, mã 8 số sẽ được gửi tới hộp thư và có hiệu lực 10 phút."
+        android:textColor="@color/zp_muted" />
+
+    <EditText
+        android:id="@+id/edtResetCode"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_input"
+        android:hint="Mã 8 số"
+        android:inputType="number"
+        android:maxLength="8"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true" />
+
+    <EditText
+        android:id="@+id/edtResetNewPassword"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_input"
+        android:hint="Mật khẩu mới (8–128 ký tự)"
+        android:inputType="textPassword"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true" />
+
+    <EditText
+        android:id="@+id/edtResetConfirmPassword"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_input"
+        android:hint="Nhập lại mật khẩu mới"
+        android:inputType="textPassword"
+        android:paddingHorizontal="14dp"
+        android:singleLine="true" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btnCancelResetCode"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="Hủy"
+            android:textAllCaps="false" />
+        <Button
+            android:id="@+id/btnConfirmResetCode"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:text="Đổi mật khẩu"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,13 +1,19 @@
 package com.example.zplanner
 
 import android.app.AlertDialog
+import android.content.Context
+import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.text.InputType
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.widget.*
 import android.util.Base64
+import android.util.AtomicFile
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -19,10 +25,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.zplanner.data.ApiTask
 import com.example.zplanner.data.ApiEvent
+import com.example.zplanner.data.ZPlannerApi
+import com.example.zplanner.data.ResetCodeRequest
+import com.example.zplanner.data.ResetPasswordRequest
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import java.security.SecureRandom
+import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -31,40 +41,117 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var api: ZPlannerApi
+    @Inject lateinit var tokenStore: com.example.zplanner.data.TokenStore
     private lateinit var auth: AuthViewModel
     private lateinit var taskViewModel: TaskViewModel
     private lateinit var eventViewModel: EventViewModel
+    private lateinit var reminderScheduler: ReminderScheduler
+    private var reminderSyncJob: Job? = null
+    private var notificationPermissionRequested = false
     private var screen = Screen.LOGIN
     private var profileEditorAvatar: ImageView? = null
     private val settings by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
     private val credentialManager by lazy { CredentialManager.create(this) }
     private val avatarPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
-        runCatching {
-            contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        lifecycleScope.launch {
+            val bitmap = withContext(Dispatchers.IO) { runCatching { loadAvatarBitmap(contentResolver, uri) }.getOrNull() }
+            if (screen != Screen.PROFILE) return@launch
+            if (bitmap == null) Toast.makeText(this@MainActivity, R.string.avatar_load_error, Toast.LENGTH_SHORT).show()
+            else showAvatarCrop(bitmap)
         }
-        settings.edit().putString("profile_avatar_uri", uri.toString()).apply()
-        profileEditorAvatar?.setImageURI(uri)
-        Toast.makeText(this, "Đã cập nhật ảnh đại diện.", Toast.LENGTH_SHORT).show()
     }
     private var authUiJob: kotlinx.coroutines.Job? = null
+    private var activeEventDialog: AlertDialog? = null
+    private var activeEventSaveButton: Button? = null
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private var swipeStartX = 0f
+    private var swipeStartY = 0f
+    private var swipeTracking = false
+    private var swipeConsumed = false
     private enum class Screen { LOGIN, REGISTER, HOME, CALENDAR, PROFILE }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Handle swipes at the Activity boundary so a completed swipe cannot
+        // also activate the button that received the initial ACTION_DOWN.
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            swipeStartX = event.x
+            swipeStartY = event.y
+            swipeTracking = screen == Screen.HOME || screen == Screen.CALENDAR || screen == Screen.PROFILE
+            swipeConsumed = false
+        } else if (swipeTracking && !swipeConsumed && event.actionMasked == MotionEvent.ACTION_MOVE) {
+            val dx = event.x - swipeStartX
+            val dy = event.y - swipeStartY
+            val threshold = 100f * resources.displayMetrics.density
+            if (kotlin.math.abs(dx) >= threshold && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.25f) {
+                swipeConsumed = true
+                if (hasWindowFocus()) showAdjacentScreen(if (dx < 0) 1 else -1)
+                return true
+            }
+        } else if (swipeConsumed && (event.actionMasked == MotionEvent.ACTION_MOVE || event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL)) {
+            if (event.actionMasked != MotionEvent.ACTION_MOVE) swipeTracking = false
+            return true
+        }
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) swipeTracking = false
+        return super.dispatchTouchEvent(event)
+    }
+
+    private fun showAdjacentScreen(direction: Int) {
+        when (screen) {
+            Screen.HOME -> if (direction > 0) showWeekCalendar()
+            Screen.CALENDAR -> if (direction > 0) showProfile() else showHome()
+            Screen.PROFILE -> if (direction < 0) showWeekCalendar()
+            Screen.LOGIN, Screen.REGISTER -> Unit
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val darkMode = newBase.getSharedPreferences("settings", MODE_PRIVATE).getBoolean("dark_mode", false)
+        val override = Configuration().apply {
+            uiMode = if (darkMode) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
+        }
+        super.attachBaseContext(newBase.createConfigurationContext(override))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        applyThemeColors()
         auth = ViewModelProvider(this)[AuthViewModel::class.java]
         taskViewModel = ViewModelProvider(this)[TaskViewModel::class.java]
         eventViewModel = ViewModelProvider(this)[EventViewModel::class.java]
+        reminderScheduler = ReminderScheduler(this)
+        reminderScheduler.ensureChannel()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { auth.signedIn.collect { signedIn -> if (signedIn && (screen == Screen.LOGIN || screen == Screen.REGISTER)) showHome() else if (!signedIn && screen != Screen.LOGIN && screen != Screen.REGISTER) showLogin() } }
+                launch { auth.accountGeneration.collect { _ ->
+                    taskViewModel.clearData()
+                    eventViewModel.clearData()
+                    if (auth.signedIn.value) {
+                        taskViewModel.load()
+                        eventViewModel.loadWeek(LocalDate.parse(taskViewModel.date.value))
+                    }
+                } }
+                launch { auth.signedIn.collect { signedIn ->
+                    if (signedIn && (screen == Screen.LOGIN || screen == Screen.REGISTER)) { taskViewModel.clearData(); eventViewModel.clearData(); taskViewModel.load(); showHome() }
+                    else if (!signedIn) { reminderSyncJob?.cancel(); reminderScheduler.cancelAll(); taskViewModel.clearData(); eventViewModel.clearData(); if (screen != Screen.LOGIN && screen != Screen.REGISTER) showLogin() }
+                    if (signedIn) syncReminders()
+                    if (signedIn && Build.VERSION.SDK_INT >= 33 && !notificationPermissionRequested && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        notificationPermissionRequested = true
+                        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                } }
                 launch { taskViewModel.sessionExpired.collect { expired -> if (expired) { taskViewModel.clearSessionExpiry(); auth.signOut() } } }
-                launch { taskViewModel.tasks.collect { renderTasks(it); renderCalendar(it) } }
-                launch { eventViewModel.events.collect { renderCalendar(taskViewModel.tasks.value) } }
+                launch { eventViewModel.sessionExpired.collect { expired -> if (expired) { eventViewModel.sessionExpired.value = false; auth.signOut() } } }
+                launch { taskViewModel.tasks.collect { renderTasks(it); renderCalendar(it); syncReminders() } }
+                launch { eventViewModel.events.collect { renderCalendar(taskViewModel.tasks.value); syncReminders() } }
                 launch { eventViewModel.overlap.collect { overlap -> if (overlap != null) showEventOverlap(overlap) } }
                 launch { eventViewModel.error.collect { error -> if (error != null) Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show() } }
                 launch {
@@ -79,7 +166,16 @@ class MainActivity : ComponentActivity() {
                 launch { taskViewModel.error.collect { error -> findViewById<TextView?>(R.id.txtTaskError)?.apply { text = error.orEmpty(); visibility = if (error == null) View.GONE else View.VISIBLE } } }
             }
         }
-        if (auth.signedIn.value) showHome() else showLogin()
+        when {
+            !auth.signedIn.value -> showLogin()
+            savedInstanceState?.getBoolean("show_profile") == true -> showProfile()
+            else -> showHome()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("show_profile", screen == Screen.PROFILE)
     }
 
     override fun onBackPressed() {
@@ -91,13 +187,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun applyThemeColors() {
-        val dark = settings.getBoolean("dark_mode", false)
-        val background = if (dark) 0xFF121018.toInt() else getColor(R.color.zp_background)
-        window.statusBarColor = background; window.navigationBarColor = background
-        window.decorView.systemUiVisibility = if (dark) 0 else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        window.setBackgroundDrawableResource(if (dark) android.R.color.black else R.color.zp_background)
+    private fun syncReminders() {
+        reminderSyncJob?.cancel()
+        if (!auth.signedIn.value || !settings.getBoolean("reminders", true)) {
+            reminderScheduler.cancelAll()
+            return
+        }
+        val account = authEmail()
+        reminderSyncJob = lifecycleScope.launch {
+            try {
+                val tasks = api.reminderTasks(LocalDate.now().toString(), "9999-12-31")
+                val events = api.reminderEvents()
+                if (tasks.isSuccessful && events.isSuccessful && auth.signedIn.value && authEmail() == account && settings.getBoolean("reminders", true)) {
+                    reminderScheduler.schedule(tasks.body()?.tasks.orEmpty(), events.body()?.events.orEmpty(), account, true)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+            }
+        }
     }
+
+    private fun authEmail(): String = authEmailStore()
+
+    private fun authEmailStore(): String = tokenStore.readEmail().trim()
 
     private fun showLogin() {
         // Stop collectors while they still point at the previous layout. Otherwise a
@@ -214,6 +326,7 @@ class MainActivity : ComponentActivity() {
         findViewById<View>(R.id.btnAddTask).setOnClickListener { showTaskEditor(null) }
         findViewById<View>(R.id.btnAddEvent).setOnClickListener { showEventEditor(null) }
         findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
+        findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
         findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
         findViewById<View>(R.id.txtSelectedDate).setOnClickListener { showWeekCalendar() }
         findViewById<TextView>(R.id.txtSelectedDate).text = taskViewModel.date.value
@@ -338,8 +451,8 @@ class MainActivity : ComponentActivity() {
         screen = Screen.CALENDAR
         setContentView(R.layout.calendar_week)
         findViewById<View>(R.id.btnCalendarBack).setOnClickListener { showHome() }
+        findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
         findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
-        findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
         findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
         val selectedDate = LocalDate.parse(taskViewModel.date.value)
         eventViewModel.loadWeek(selectedDate)
@@ -433,10 +546,16 @@ class MainActivity : ComponentActivity() {
         priority.setSelection(priorities.indexOf(existing?.priority).coerceAtLeast(0))
         status.setSelection(statuses.indexOf(existing?.status).coerceAtLeast(0))
 
+        setupPickerClick(date) { showDatePicker(date) }
+        setupPickerClick(start) { showTimePicker(start) }
+        setupPickerClick(end) { showTimePicker(end) }
+
         val dialog = createCustomDialog(view)
 
         view.findViewById<Button?>(R.id.btnCancelTask)?.setOnClickListener { dialog.dismiss() }
         view.findViewById<Button?>(R.id.btnSaveTask)?.setOnClickListener {
+            val saveButton = view.findViewById<Button>(R.id.btnSaveTask)
+            if (!saveButton.isEnabled) return@setOnClickListener
             val d = runCatching { LocalDate.parse(date.text.toString()) }.getOrNull()
             val s = runCatching { LocalTime.parse(start.text.toString()) }.getOrNull()
             val e = runCatching { LocalTime.parse(end.text.toString()) }.getOrNull()
@@ -446,11 +565,12 @@ class MainActivity : ComponentActivity() {
             }
             val selectedPriority = priorities.getOrElse(priority.selectedItemPosition) { "low" }
             val selectedStatus = statuses.getOrElse(status.selectedItemPosition) { "todo" }
-
             val overlap = taskViewModel.tasks.value.any { it.id != existing?.id && it.date == d.toString() && s < LocalTime.parse(it.endTime) && e > LocalTime.parse(it.startTime) }
-            val save = {
-                taskViewModel.save(ApiTask(existing?.id ?: 0, title.text.toString().trim(), description.text.toString().trim(), d.toString(), s.toString(), e.toString(), selectedPriority, selectedStatus))
-                dialog.dismiss()
+            val save: () -> Unit = {
+                saveButton.isEnabled = false
+                taskViewModel.save(ApiTask(existing?.id ?: 0, title.text.toString().trim(), description.text.toString().trim(), d.toString(), s.toString(), e.toString(), selectedPriority, selectedStatus)) { success ->
+                    if (success) dialog.dismiss() else saveButton.isEnabled = true
+                }
             }
             if (overlap) {
                 AlertDialog.Builder(this)
@@ -462,6 +582,40 @@ class MainActivity : ComponentActivity() {
             } else save()
         }
         dialog.show()
+    }
+
+    private fun setupPickerClick(editText: EditText, action: () -> Unit) {
+        editText.isFocusable = false
+        editText.isClickable = true
+        editText.setOnClickListener { action() }
+    }
+
+    private fun showDatePicker(editText: EditText) {
+        val current = runCatching { LocalDate.parse(editText.text.toString()) }.getOrDefault(LocalDate.now())
+        android.app.DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                val selected = LocalDate.of(year, month + 1, dayOfMonth)
+                editText.setText(selected.toString())
+            },
+            current.year,
+            current.monthValue - 1,
+            current.dayOfMonth
+        ).show()
+    }
+
+    private fun showTimePicker(editText: EditText) {
+        val current = runCatching { LocalTime.parse(editText.text.toString()) }.getOrDefault(LocalTime.of(9, 0))
+        android.app.TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                val selected = LocalTime.of(hourOfDay, minute)
+                editText.setText(selected.format(DateTimeFormatter.ofPattern("HH:mm")))
+            },
+            current.hour,
+            current.minute,
+            true
+        ).show()
     }
 
     private fun localDateTime(value: String): String = runCatching { ZonedDateTime.parse(value).withZoneSameInstant(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) }.getOrDefault(value)
@@ -492,42 +646,99 @@ class MainActivity : ComponentActivity() {
         end.setText(endLocal?.toLocalTime()?.toString()?.take(5) ?: "10:00")
         v.findViewById<EditText>(R.id.edtEventReminder).setText(existing?.reminderMinutes?.toString() ?: "0")
 
-        val dialog = createCustomDialog(v)
+        setupPickerClick(date) { showDatePicker(date) }
+        setupPickerClick(start) { showTimePicker(start) }
+        setupPickerClick(end) { showTimePicker(end) }
 
+        val dialog = createCustomDialog(v)
+        activeEventDialog = dialog
+        val saveButton = v.findViewById<Button>(R.id.btnSaveEvent)
+        activeEventSaveButton = saveButton
         v.findViewById<Button?>(R.id.btnCancelEvent)?.setOnClickListener { dialog.dismiss() }
-        v.findViewById<Button?>(R.id.btnSaveEvent)?.setOnClickListener {
-            runCatching {
-                val day = LocalDate.parse(date.text.toString())
-                val s = LocalTime.parse(start.text.toString())
-                val e = LocalTime.parse(end.text.toString())
-                if (!s.isBefore(e)) error("Thời gian bắt đầu phải trước thời gian kết thúc")
-                val event = ApiEvent(
-                    existing?.id ?: 0,
-                    v.findViewById<EditText>(R.id.edtEventTitle).text.toString().trim(),
-                    v.findViewById<EditText>(R.id.edtEventDescription).text.toString(),
-                    v.findViewById<EditText>(R.id.edtEventLocation).text.toString(),
-                    ZonedDateTime.of(day, s, zone).withZoneSameInstant(java.time.ZoneOffset.UTC).toInstant().toString(),
-                    ZonedDateTime.of(day, e, zone).withZoneSameInstant(java.time.ZoneOffset.UTC).toInstant().toString(),
-                    v.findViewById<EditText>(R.id.edtEventReminder).text.toString().toIntOrNull() ?: 0
-                )
-                eventViewModel.save(event)
-                dialog.dismiss()
-            }.onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }
+        fun buildEvent(): ApiEvent {
+            val day = LocalDate.parse(date.text.toString())
+            val s = LocalTime.parse(start.text.toString())
+            val e = LocalTime.parse(end.text.toString())
+            if (!s.isBefore(e)) error("Thời gian bắt đầu phải trước thời gian kết thúc")
+            return ApiEvent(existing?.id ?: 0, v.findViewById<EditText>(R.id.edtEventTitle).text.toString().trim(), v.findViewById<EditText>(R.id.edtEventDescription).text.toString(), v.findViewById<EditText>(R.id.edtEventLocation).text.toString(), ZonedDateTime.of(day, s, zone).toInstant().toApiTimestamp(), ZonedDateTime.of(day, e, zone).toInstant().toApiTimestamp(), v.findViewById<EditText>(R.id.edtEventReminder).text.toString().toIntOrNull() ?: 0)
+        }
+        fun submit(confirmOverlap: Boolean = false) {
+            if (!saveButton.isEnabled) return
+            saveButton.isEnabled = false
+            eventViewModel.save(buildEvent(), confirmOverlap) { success ->
+                if (success) {
+                    activeEventDialog = null
+                    activeEventSaveButton = null
+                    dialog.dismiss()
+                } else if (dialog.isShowing) {
+                    saveButton.isEnabled = true
+                }
+            }
+        }
+        saveButton.setOnClickListener {
+            runCatching { buildEvent() }.onSuccess { submit() }.onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }
         }
         dialog.show()
     }
 
-    private fun showEventOverlap(events: List<ApiEvent>) { AlertDialog.Builder(this).setTitle("Sự kiện bị trùng").setMessage(events.joinToString("\n") { "${it.title}: ${localDateTime(it.startAt)}" }.ifBlank { "Có sự kiện khác trong khoảng thời gian này." }).setNegativeButton("Hủy") { _, _ -> eventViewModel.clearOverlap() }.setPositiveButton("Tiếp tục lưu") { _, _ -> eventViewModel.confirmOverlap() }.show() }
+    private fun showEventOverlap(events: List<ApiEvent>) {
+        val inputDialog = activeEventDialog
+        val saveButton = activeEventSaveButton
+        val enabledBeforeConfirm = saveButton?.isEnabled ?: false
+        val overlapDialog = AlertDialog.Builder(this)
+            .setTitle("Sự kiện bị trùng")
+            .setMessage(events.joinToString("\n") { "${it.title}: ${localDateTime(it.startAt)}" }.ifBlank { "Có sự kiện khác trong khoảng thời gian này." })
+            .setNegativeButton("Hủy") { _, _ ->
+                eventViewModel.clearOverlap()
+                if (activeEventDialog === inputDialog && inputDialog?.isShowing == true) saveButton?.isEnabled = enabledBeforeConfirm
+            }
+            .setPositiveButton("Tiếp tục lưu", null)
+            .create()
+        overlapDialog.setOnShowListener {
+            overlapDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val button = overlapDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                if (!button.isEnabled) return@setOnClickListener
+                button.isEnabled = false
+                if (activeEventDialog === inputDialog) saveButton?.isEnabled = false
+                eventViewModel.confirmOverlap { success ->
+                    if (success) {
+                        if (activeEventDialog === inputDialog && inputDialog?.isShowing == true) inputDialog.dismiss()
+                        if (activeEventDialog === inputDialog) {
+                            activeEventDialog = null
+                            activeEventSaveButton = null
+                        }
+                        overlapDialog.dismiss()
+                    } else {
+                        // The overlap dialog is only a retry prompt after a failed confirm.
+                        // The input dialog stays open, with its current text intact.
+                        overlapDialog.dismiss()
+                        if (activeEventDialog === inputDialog && inputDialog?.isShowing == true) saveButton?.isEnabled = true
+                    }
+                }
+            }
+        }
+        overlapDialog.setOnCancelListener {
+            eventViewModel.clearOverlap()
+            if (activeEventDialog === inputDialog && inputDialog?.isShowing == true) saveButton?.isEnabled = enabledBeforeConfirm
+        }
+        overlapDialog.show()
+    }
 
     private fun showProfile() {
         screen = Screen.PROFILE
         setContentView(R.layout.trangcanhan)
-        findViewById<TextView>(R.id.txtProfileName).text = settings.getString("profile_name", "Lục Bảo")
+        val email = authEmail()
+        val customName = tokenStore.readProfileName(email)
+        findViewById<TextView>(R.id.txtProfileName).text = customName ?: email
         findViewById<ImageView>(R.id.imgProfileAvatar).apply {
-            val uri = settings.getString("profile_avatar_uri", null)
+            clipToOutline = true
+            val uri = tokenStore.readProfileAvatarUri(email)
             if (uri.isNullOrBlank()) setImageResource(R.drawable.ic_avatar_default) else setImageURI(Uri.parse(uri))
         }
-        findViewById<TextView>(R.id.txtProfileEmail).text = settings.getString("profile_email", "").orEmpty().ifBlank { "Tài khoản ZPlanner" }
+        findViewById<TextView>(R.id.txtProfileEmail).apply {
+            text = email
+            visibility = if (customName != null && customName != email) View.VISIBLE else View.GONE
+        }
         findViewById<View>(R.id.btnProfileBack).setOnClickListener { showHome() }
         val darkMode = findViewById<Switch>(R.id.btnDarkMode)
         val reminders = findViewById<Switch>(R.id.btnReminders)
@@ -535,11 +746,11 @@ class MainActivity : ComponentActivity() {
         reminders.isChecked = settings.getBoolean("reminders", true)
         darkMode.setOnCheckedChangeListener { _, enabled ->
             settings.edit().putBoolean("dark_mode", enabled).apply()
-            applyThemeColors()
             recreate()
         }
         reminders.setOnCheckedChangeListener { _, enabled ->
             settings.edit().putBoolean("reminders", enabled).apply()
+            syncReminders()
         }
         val linkGoogle = findViewById<View>(R.id.btnLinkGoogleProfile)
         lifecycleScope.launch {
@@ -551,9 +762,8 @@ class MainActivity : ComponentActivity() {
         findViewById<View>(R.id.btnLogoutProfile).setOnClickListener { showLogout() }
         findViewById<View>(R.id.navHome).setOnClickListener { showHome() }
         findViewById<View>(R.id.navCalendar).setOnClickListener { showWeekCalendar() }
-        findViewById<View>(R.id.navTasks).setOnClickListener { showHome() }
+        findViewById<View>(R.id.navProfile).setOnClickListener { showProfile() }
         findViewById<View>(R.id.btnEditProfile).setOnClickListener { showProfileEditor() }
-        findViewById<View>(R.id.btnManageCalendar).setOnClickListener { showWeekCalendar() }
         findViewById<View>(R.id.btnHelp).setOnClickListener { showInfoDialog("Trung tâm trợ giúp", "Bạn có thể quản lý lịch, nhiệm vụ và cài đặt trong ứng dụng.") }
         findViewById<View>(R.id.btnAbout).setOnClickListener { showInfoDialog("Về ZPlanner", "ZPlanner v1.0\nỨng dụng lập kế hoạch cá nhân.") }
     }
@@ -563,12 +773,54 @@ class MainActivity : ComponentActivity() {
         val email = v.findViewById<EditText>(R.id.edtResetEmail)
         val dialog = createCustomDialog(v)
         v.findViewById<Button>(R.id.btnCancelReset).setOnClickListener { dialog.dismiss() }
-        v.findViewById<Button>(R.id.btnSendReset).setOnClickListener {
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.text.toString().trim()).matches()) {
+        val send = v.findViewById<Button>(R.id.btnSendReset)
+        send.setOnClickListener {
+            val address = email.text.toString().trim()
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(address).matches()) {
                 email.error = "Nhập email hợp lệ"
             } else {
-                Toast.makeText(this, "Tính năng đặt lại mật khẩu chưa được hỗ trợ (chưa có API).", Toast.LENGTH_LONG).show()
-                dialog.dismiss()
+                send.isEnabled = false
+                lifecycleScope.launch {
+                    try {
+                        val response = api.requestResetCode(ResetCodeRequest(address))
+                        if (response.isSuccessful) {
+                            dialog.dismiss()
+                            showResetCodeDialog(address)
+                        } else Toast.makeText(this@MainActivity, "Không thể gửi mã (HTTP ${response.code()}).", Toast.LENGTH_LONG).show()
+                    } catch (error: CancellationException) { throw error }
+                    catch (_: Exception) { Toast.makeText(this@MainActivity, "Không thể kết nối máy chủ.", Toast.LENGTH_LONG).show() }
+                    finally { if (dialog.isShowing) send.isEnabled = true }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showResetCodeDialog(email: String) {
+        val v = LayoutInflater.from(this).inflate(R.layout.dialog_nhap_ma_dat_lai, null)
+        val code = v.findViewById<EditText>(R.id.edtResetCode)
+        val password = v.findViewById<EditText>(R.id.edtResetNewPassword)
+        val confirm = v.findViewById<EditText>(R.id.edtResetConfirmPassword)
+        val dialog = createCustomDialog(v)
+        val submit = v.findViewById<Button>(R.id.btnConfirmResetCode)
+        v.findViewById<Button>(R.id.btnCancelResetCode).setOnClickListener { dialog.dismiss() }
+        submit.setOnClickListener {
+            val codeValue = code.text.toString()
+            val newPassword = password.text.toString()
+            if (!codeValue.matches(Regex("\\d{8}"))) { code.error = "Nhập mã 8 số"; return@setOnClickListener }
+            if (newPassword.length !in 8..128) { password.error = "Mật khẩu cần 8–128 ký tự"; return@setOnClickListener }
+            if (newPassword != confirm.text.toString()) { confirm.error = "Mật khẩu nhập lại không khớp"; return@setOnClickListener }
+            submit.isEnabled = false
+            lifecycleScope.launch {
+                try {
+                    val response = api.confirmPasswordReset(ResetPasswordRequest(email, codeValue, newPassword))
+                    if (response.isSuccessful) {
+                        dialog.dismiss()
+                        Toast.makeText(this@MainActivity, "Đã đổi mật khẩu. Hãy đăng nhập lại.", Toast.LENGTH_LONG).show()
+                    } else Toast.makeText(this@MainActivity, if (response.code() == 400) "Mã không đúng, đã hết hạn hoặc đã dùng." else "Không thể đổi mật khẩu (HTTP ${response.code()}).", Toast.LENGTH_LONG).show()
+                } catch (error: CancellationException) { throw error }
+                catch (_: Exception) { Toast.makeText(this@MainActivity, "Không thể kết nối máy chủ.", Toast.LENGTH_LONG).show() }
+                finally { if (dialog.isShowing) submit.isEnabled = true }
             }
         }
         dialog.show()
@@ -583,31 +835,76 @@ class MainActivity : ComponentActivity() {
     private fun showProfileEditor() {
         val v = LayoutInflater.from(this).inflate(R.layout.dialog_chinhsua_hoso, null)
         val name = v.findViewById<EditText>(R.id.edtProfileName)
-        profileEditorAvatar = v.findViewById(R.id.imgProfileAvatarPreview)
-        name.setText(settings.getString("profile_name", "Lục Bảo"))
-        settings.getString("profile_avatar_uri", null)?.let { profileEditorAvatar?.setImageURI(Uri.parse(it)) } ?: profileEditorAvatar?.setImageResource(R.drawable.ic_avatar_default)
+        profileEditorAvatar = v.findViewById<ImageView>(R.id.imgProfileAvatarPreview).apply { clipToOutline = true }
+        val email = authEmail()
+        name.setText(tokenStore.readProfileName(email) ?: email)
+        tokenStore.readProfileAvatarUri(email)?.let { profileEditorAvatar?.setImageURI(Uri.parse(it)) } ?: profileEditorAvatar?.setImageResource(R.drawable.ic_avatar_default)
         val dialog = createCustomDialog(v)
-        v.findViewById<Button>(R.id.btnChangeAvatar).setOnClickListener {
+        v.findViewById<View>(R.id.btnChangeAvatar).setOnClickListener {
             avatarPicker.launch(arrayOf("image/*"))
         }
         v.findViewById<Button>(R.id.btnCancelProfile).setOnClickListener { profileEditorAvatar = null; dialog.dismiss() }
         v.findViewById<Button>(R.id.btnSaveProfile).setOnClickListener {
-            if (name.text.isNullOrBlank()) name.error = "Nhập họ tên" else {
-                settings.edit().putString("profile_name", name.text.toString().trim()).apply()
-                profileEditorAvatar = null
-                dialog.dismiss()
-                showProfile()
-            }
+            val enteredName = name.text.toString().trim()
+            val email = authEmail()
+            tokenStore.saveProfileName(email, enteredName.takeUnless { it.isBlank() || it == email })
+            profileEditorAvatar = null
+            dialog.dismiss()
+            showProfile()
         }
         dialog.setOnDismissListener { profileEditorAvatar = null }
         dialog.show()
+    }
+
+    private fun showAvatarCrop(bitmap: Bitmap) {
+        val view = layoutInflater.inflate(R.layout.dialog_crop_avatar, null)
+        val crop = view.findViewById<AvatarCropView>(R.id.avatarCrop)
+        crop.setBitmap(bitmap)
+        view.findViewById<SeekBar>(R.id.avatarZoom).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                crop.setZoom(1f + 3f * progress / seekBar.max)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+        })
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.avatar_crop_title)
+            .setView(view)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.avatar_save, null)
+            .show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val avatar = AtomicFile(File(filesDir, "profile-avatar-${tokenStore.profileKey(authEmail())}.png"))
+            val saved = runCatching {
+                val stream = avatar.startWrite()
+                try {
+                    check(crop.renderAvatar().compress(Bitmap.CompressFormat.PNG, 100, stream))
+                    avatar.finishWrite(stream)
+                } catch (error: Exception) {
+                    avatar.failWrite(stream)
+                    throw error
+                }
+            }
+            if (saved.isFailure) {
+                Toast.makeText(this, R.string.avatar_save_error, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val uri = Uri.fromFile(avatar.baseFile)
+            tokenStore.saveProfileAvatarUri(authEmail(), uri.toString())
+            listOfNotNull(profileEditorAvatar, findViewById<ImageView>(R.id.imgProfileAvatar)).forEach { image ->
+                image.setImageDrawable(null)
+                image.setImageURI(uri)
+            }
+            dialog.dismiss()
+        }
     }
 
     private fun showLogout() {
         val v = LayoutInflater.from(this).inflate(R.layout.dialog_xac_nhan_dang_xuat, null)
         val dialog = createCustomDialog(v)
         v.findViewById<Button>(R.id.btnCancelLogout).setOnClickListener { dialog.dismiss() }
-        v.findViewById<Button>(R.id.btnConfirmLogout).setOnClickListener { dialog.dismiss(); auth.signOut() }
+        v.findViewById<Button>(R.id.btnConfirmLogout).setOnClickListener { dialog.dismiss(); reminderSyncJob?.cancel(); reminderScheduler.cancelAll(); auth.signOut() }
         dialog.show()
     }
 }
