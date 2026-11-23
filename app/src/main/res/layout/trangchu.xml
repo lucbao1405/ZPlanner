@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity"
+    tools:theme="@style/Theme.ZPlanner.Preview"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/zp_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/zp_screen_padding">
+
+            <!-- Top Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/header_brand"
+                        android:textColor="@color/zp_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/header_subtitle"
+                        android:textColor="@color/zp_text"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Hero Progress Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_hero"
+                android:orientation="vertical"
+                android:elevation="4dp"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/today"
+                    android:textColor="@color/zp_hero_text"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtProgress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    tools:text="Hoàn thành 2/3 công việc trong ngày"
+                    android:textColor="@color/zp_on_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/progressDay"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="16dp"
+                    android:max="3"
+                    android:progress="2"
+                    android:progressTint="@color/zp_on_primary"
+                    android:progressBackgroundTint="@color/zp_hero_progress" />
+            </LinearLayout>
+
+            <!-- Date Selector Navigator -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_card"
+                android:elevation="2dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="6dp">
+
+                <ImageButton
+                    android:id="@+id/btnPreviousDay"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_arrow_back"
+                    android:tint="@color/zp_primary"
+                    android:padding="10dp"
+                    android:contentDescription="@string/previous_day" />
+
+                <TextView
+                    android:id="@+id/txtSelectedDate"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    tools:text="Hôm nay (2025-05-20)"
+                    android:textColor="@color/zp_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground" />
+
+                <ImageButton
+                    android:id="@+id/btnNextDay"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="@color/zp_primary"
+                    android:padding="10dp"
+                    android:contentDescription="@string/next_day" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txtTaskError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/zp_danger"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressTasks"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:indeterminateTint="@color/zp_primary"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/txtEmptyTasks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:padding="28dp"
+                android:text="@string/empty_tasks"
+                android:textColor="@color/zp_muted"
+                android:textSize="15sp"
+                android:lineSpacingExtra="4dp"
+                android:visibility="gone"
+                tools:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/taskList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical">
+
+                <!-- Preview Items in Android Studio Layout Editor -->
+                <include layout="@layout/item_task" tools:visibility="visible" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Action Buttons Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:background="@color/zp_background">
+
+        <Button
+            android:id="@+id/btnAddEvent"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_secondary_button"
+            android:drawableStart="@drawable/ic_calendar"
+            android:drawableTint="@color/zp_primary"
+            android:drawablePadding="6dp"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="@string/add_event_btn"
+            android:textAllCaps="false"
+            android:textColor="@color/zp_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnAddTask"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_primary_button"
+            android:drawableStart="@drawable/ic_add"
+            android:drawablePadding="6dp"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="@string/add_task_btn"
+            android:textAllCaps="false"
+            android:textColor="@color/zp_on_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Bottom Navigation Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/zp_surface"
+        android:elevation="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_home"
+            android:drawableTint="@color/zp_primary"
+            android:drawablePadding="2dp"
+            android:text="@string/home_label"
+            android:textColor="@color/zp_primary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/navCalendar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_calendar"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/calendar_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/navProfile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_person"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="@string/profile_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

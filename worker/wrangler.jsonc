@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zplanner-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-08",
+  "observability": { "enabled": true },
+  "vars": {
+    "GOOGLE_WEB_CLIENT_ID": "504994159658-kelr3bllvp67caivm5afqg0gam8vu5vl.apps.googleusercontent.com",
+    "GOOGLE_JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zplanner",
+      "database_id": "61a62c34-2042-4e7e-a180-340570b7a388",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

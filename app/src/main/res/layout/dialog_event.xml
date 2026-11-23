@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:theme="@style/Theme.ZPlanner.Preview"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:background="@drawable/bg_dialog">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_icon_circle_primary"
+                android:contentDescription="@null"
+                android:padding="12dp"
+                android:src="@drawable/ic_calendar"
+                app:tint="@color/zp_primary" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/event_details"
+                    android:textColor="@color/zp_text"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/event_subtitle"
+                    android:textColor="@color/zp_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Section 1: Event Info -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/event_section_info"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/edtEventTitle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:hint="@string/event_title_hint"
+            android:inputType="textCapSentences"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
+        <EditText
+            android:id="@+id/edtEventDescription"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:gravity="top"
+            android:hint="@string/event_desc_hint"
+            android:inputType="textMultiLine|textCapSentences"
+            android:padding="14dp"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/edtEventLocation"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:drawableStart="@drawable/ic_location"
+            android:drawablePadding="10dp"
+            android:drawableTint="@color/zp_muted"
+            android:hint="@string/event_location_hint"
+            android:inputType="textCapWords"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
+        <!-- Section 2: Time & Reminder -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/event_section_time"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/edtEventDate"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:drawableStart="@drawable/ic_calendar"
+            android:drawablePadding="10dp"
+            android:drawableTint="@color/zp_muted"
+            android:hint="@string/event_date_hint"
+            android:inputType="date"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/edtEventStart"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:drawableStart="@drawable/ic_clock"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/zp_muted"
+                android:hint="@string/event_start_hint"
+                android:inputType="time"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="@color/zp_text"
+                android:textColorHint="@color/zp_muted"
+                android:textSize="15sp" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
+            <EditText
+                android:id="@+id/edtEventEnd"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:drawableStart="@drawable/ic_clock"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/zp_muted"
+                android:hint="@string/event_end_hint"
+                android:inputType="time"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="@color/zp_text"
+                android:textColorHint="@color/zp_muted"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/edtEventReminder"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_input"
+            android:hint="@string/event_reminder_hint"
+            android:inputType="number"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:singleLine="true"
+            android:text="0"
+            android:textColor="@color/zp_text"
+            android:textColorHint="@color/zp_muted"
+            android:textSize="15sp" />
+
+        <!-- Custom Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelEvent"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:minWidth="88dp"
+                android:text="@string/cancel"
+                android:textAllCaps="false"
+                android:textColor="@color/zp_muted"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/btnSaveEvent"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_primary_button"
+                android:minWidth="120dp"
+                android:paddingHorizontal="20dp"
+                android:text="@string/save_event"
+                android:textAllCaps="false"
+                android:textColor="@color/zp_on_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

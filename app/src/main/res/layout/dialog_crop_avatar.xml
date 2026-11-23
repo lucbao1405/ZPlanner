@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
+
+    <com.example.zplanner.AvatarCropView
+        android:id="@+id/avatarCrop"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_avatar_clip"
+        android:foreground="@drawable/bg_avatar_stroke"
+        android:contentDescription="@string/avatar_description"
+        android:focusable="true" />
+
+    <SeekBar
+        android:id="@+id/avatarZoom"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:contentDescription="@string/avatar_zoom"
+        android:max="100" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/avatar_crop_hint"
+        android:textColor="@color/zp_muted" />
+</LinearLayout>

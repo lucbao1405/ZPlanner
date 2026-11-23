@@ -1,0 +1,5 @@
+<resources>
+    <dimen name="zp_screen_padding">20dp</dimen>
+    <dimen name="zp_card_radius">24dp</dimen>
+    <dimen name="zp_small_radius">14dp</dimen>
+</resources>

@@ -18,6 +18,9 @@ coverage/
 .env
 .env.*
 !.env.example
+**/.dev.vars
+**/.wrangler/
+**/worker-configuration.d.ts
 
 # Operating system and editor files
 .DS_Store

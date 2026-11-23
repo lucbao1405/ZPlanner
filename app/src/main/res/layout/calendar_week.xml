@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity"
+    tools:theme="@style/Theme.ZPlanner.Preview"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/zp_background">
+
+    <!-- Top Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/btnCalendarBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            android:padding="10dp"
+            android:tint="@color/zp_primary"
+            android:contentDescription="@string/back_description" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/calendar"
+            android:textColor="@color/zp_text"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="44dp"
+            android:layout_height="44dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="@dimen/zp_screen_padding">
+
+        <TextView
+            android:id="@+id/txtWeekRange"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/zp_muted"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="19/05 – 25/05/2025" />
+
+        <!-- Week Days Row Container -->
+        <LinearLayout
+            android:id="@+id/weekDays"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Layout Editor Sample Day Chips -->
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="T2\n19"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_selected"
+                tools:text="T3\n20"
+                android:textColor="@color/zp_on_primary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="T4\n21"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="T5\n22"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="T6\n23"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="T7\n24"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_day_chip_normal"
+                tools:text="CN\n25"
+                android:textColor="@color/zp_text"
+                android:textSize="12sp"
+                tools:ignore="ButtonStyle" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtCalendarDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:textColor="@color/zp_text"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            tools:text="Lịch ngày 20/05/2025" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="10dp"
+            android:fillViewport="true"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:id="@+id/calendarTaskList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Preview Items in Android Studio Layout Editor -->
+                <include layout="@layout/item_task" tools:visibility="visible" />
+                <include layout="@layout/item_event" tools:visibility="visible" />
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+    <!-- Bottom Navigation Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/zp_surface"
+        android:elevation="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_home"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/home_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/navCalendar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_calendar"
+            android:drawableTint="@color/zp_primary"
+            android:drawablePadding="2dp"
+            android:text="@string/calendar_label"
+            android:textColor="@color/zp_primary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/navProfile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/bg_nav_item"
+            android:drawableTop="@drawable/ic_person"
+            android:drawableTint="@color/zp_nav_muted"
+            android:drawablePadding="2dp"
+            android:text="@string/profile_label"
+            android:textColor="@color/zp_nav_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

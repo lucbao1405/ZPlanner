@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_task_card"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:elevation="2dp"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Top Row: Time & Badges -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/txtTaskTime"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/zp_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="⏰ 09:00 - 10:00" />
+
+        <TextView
+            android:id="@+id/txtTaskPriority"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_badge_high"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:minWidth="48dp"
+            android:gravity="center"
+            android:textColor="@color/zp_priority_high_text"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="Cao" />
+
+        <TextView
+            android:id="@+id/txtTaskStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_badge_todo"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:minWidth="48dp"
+            android:gravity="center"
+            android:textColor="@color/zp_status_todo_text"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="○ Cần làm" />
+    </LinearLayout>
+
+    <!-- Content Row: Title, Description & Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtTaskTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/zp_text"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="Họp thiết kế ứng dụng ZPlanner" />
+
+            <TextView
+                android:id="@+id/txtTaskDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/zp_muted"
+                android:textSize="13sp"
+                tools:text="Thảo luận về giao diện người dùng và nâng cấp trải nghiệm" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnEditTask"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_btn_edit"
+            android:contentDescription="@string/edit"
+            android:padding="8dp"
+            android:src="@drawable/ic_edit"
+            android:tint="@color/zp_primary" />
+
+        <ImageButton
+            android:id="@+id/btnDeleteTask"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_icon_btn_delete"
+            android:contentDescription="@string/delete"
+            android:padding="8dp"
+            android:src="@drawable/ic_delete"
+            android:tint="@color/zp_danger" />
+    </LinearLayout>
+</LinearLayout>
