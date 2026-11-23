@@ -60,9 +60,9 @@
             android:id="@+id/imgProfileAvatarPreview"
             android:layout_width="104dp"
             android:layout_height="104dp"
-            android:background="@drawable/bg_avatar_ring"
+            android:background="@drawable/bg_avatar_clip"
+            android:foreground="@drawable/bg_avatar_stroke"
             android:contentDescription="@string/avatar_description"
-            android:padding="3dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_avatar_default" />
 

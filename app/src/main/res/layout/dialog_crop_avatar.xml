@@ -11,7 +11,8 @@
         android:layout_width="220dp"
         android:layout_height="220dp"
         android:layout_gravity="center_horizontal"
-        android:background="@drawable/bg_avatar_ring"
+        android:background="@drawable/bg_avatar_clip"
+        android:foreground="@drawable/bg_avatar_stroke"
         android:contentDescription="@string/avatar_description"
         android:focusable="true" />
 
